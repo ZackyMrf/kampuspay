@@ -1,0 +1,325 @@
+.faucet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(5, 8, 20, 0.78);
+  backdrop-filter: blur(12px);
+}
+
+.faucet-modal {
+  width: min(100%, 520px);
+  background:
+    radial-gradient(circle at top right, rgba(6, 182, 212, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(19, 22, 42, 0.98), rgba(12, 15, 28, 0.98));
+  border: 1px solid rgba(6, 182, 212, 0.22);
+  border-radius: 24px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.faucet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 24px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.faucet-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.faucet-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(99, 102, 241, 0.22));
+  border: 1px solid rgba(6, 182, 212, 0.26);
+  color: var(--cyan);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.faucet-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.faucet-subtitle {
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.faucet-close {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.faucet-close:hover {
+  color: var(--text-primary);
+  border-color: var(--border-bright);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.faucet-network {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 24px 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(6, 182, 212, 0.14);
+  color: var(--text-secondary);
+  font-size: 0.83rem;
+}
+
+.faucet-rpc-note {
+  margin: 12px 24px 0;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.faucet-net-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: var(--cyan);
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.65);
+}
+
+.faucet-balance-card {
+  position: relative;
+  margin: 18px 24px 0;
+  padding: 20px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+}
+
+.faucet-balance-label,
+.faucet-history-label,
+.faucet-footer-label,
+.faucet-address-label {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.faucet-balance-loading {
+  display: flex;
+  align-items: center;
+  min-height: 54px;
+}
+
+.faucet-balance-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.faucet-balance-num {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.faucet-balance-unit {
+  color: var(--accent-light);
+  font-weight: 700;
+}
+
+.faucet-refresh-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.faucet-refresh-btn:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.faucet-address {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 18px 24px 0;
+}
+
+.faucet-address-val {
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.faucet-status {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 18px 24px 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+}
+
+.faucet-status-success {
+  background: var(--success-bg);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  color: var(--success);
+}
+
+.faucet-status-error {
+  background: var(--danger-bg);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  color: var(--danger);
+}
+
+.faucet-status-rate-limit {
+  background: var(--warning-bg);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  color: var(--warning);
+}
+
+.faucet-status-msg {
+  line-height: 1.5;
+}
+
+.faucet-actions {
+  padding: 20px 24px 0;
+}
+
+.faucet-btn {
+  justify-content: center;
+}
+
+.faucet-help-text {
+  margin-top: 10px;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.faucet-history {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 22px 24px 0;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.faucet-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.faucet-tx-link {
+  color: var(--accent-light);
+  text-decoration: none;
+}
+
+.faucet-tx-link:hover,
+.faucet-ext-link:hover {
+  text-decoration: underline;
+}
+
+.faucet-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 22px;
+  padding: 20px 24px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.faucet-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.faucet-ext-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+@media (max-width: 640px) {
+  .faucet-overlay {
+    padding: 12px;
+  }
+
+  .faucet-header,
+  .faucet-actions,
+  .faucet-footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .faucet-network,
+  .faucet-rpc-note,
+  .faucet-balance-card,
+  .faucet-address,
+  .faucet-status,
+  .faucet-history {
+    margin-left: 18px;
+    margin-right: 18px;
+  }
+
+  .faucet-header-left {
+    align-items: flex-start;
+  }
+
+  .faucet-history-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

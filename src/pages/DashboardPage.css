@@ -1,0 +1,78 @@
+.dash-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+.dash-toolbar-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+}
+.dash-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.dash-control-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 12px;
+}
+.dash-results {
+  text-align: right;
+}
+.filter-btn {
+  padding: 7px 16px; border-radius: 20px; font-size: 0.82rem; font-weight: 600;
+  background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+  cursor: pointer; transition: all .2s; font-family: 'Inter', sans-serif;
+}
+.filter-btn:hover, .filter-btn.active {
+  background: rgba(99,102,241,0.12); border-color: var(--accent); color: var(--accent-light);
+}
+.inv-title { font-weight: 600; font-size: 0.875rem; }
+.inv-id { font-size: 0.72rem; margin-top: 2px; }
+.inv-date { font-size: 0.72rem; }
+.inv-meta { margin-top: 4px; }
+.inv-amount { font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--accent-light); }
+.tx-hash { color: var(--success); text-decoration: none; font-size: 0.78rem; }
+.tx-hash:hover { text-decoration: underline; }
+.action-btns { display: flex; gap: 6px; }
+.empty-state { text-align: center; padding: 60px 20px; }
+.empty-icon { font-size: 3rem; margin-bottom: 12px; }
+.empty-state h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
+
+@media (max-width: 1100px) {
+  .stats-grid,
+  .dash-control-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .dash-toolbar {
+    flex-direction: column;
+  }
+  .dash-toolbar-actions,
+  .dash-control-grid,
+  .stats-grid,
+  .action-btns {
+    width: 100%;
+  }
+  .dash-control-grid,
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .dash-results {
+    text-align: left;
+  }
+  .action-btns {
+    flex-direction: column;
+  }
+}

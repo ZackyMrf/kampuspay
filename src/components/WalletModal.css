@@ -1,0 +1,117 @@
+/* ── WalletModal ── */
+.wm-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  animation: wm-fade-in .15s ease;
+}
+@keyframes wm-fade-in { from { opacity: 0 } to { opacity: 1 } }
+
+.wm-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-bright);
+  border-radius: 20px;
+  width: 100%; max-width: 420px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.15);
+  animation: wm-slide-up .2s ease;
+  overflow: hidden;
+}
+@keyframes wm-slide-up {
+  from { transform: translateY(16px); opacity: 0 }
+  to   { transform: translateY(0);    opacity: 1 }
+}
+
+.wm-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.wm-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.25rem; font-weight: 700; }
+.wm-subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+.wm-close {
+  background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+  color: var(--text-secondary); border-radius: 8px; width: 32px; height: 32px;
+  cursor: pointer; font-size: 0.85rem; display: flex; align-items: center;
+  justify-content: center; flex-shrink: 0; transition: all .15s;
+}
+.wm-close:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+
+.wm-section { padding: 16px 24px; }
+.wm-section-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.72rem; color: var(--text-muted); font-weight: 600;
+  text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px;
+}
+.wm-dot-green {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--success);
+  flex-shrink: 0; animation: pulse 2s infinite;
+}
+
+.wm-wallet-list { display: flex; flex-direction: column; gap: 8px; }
+
+.wm-wallet-btn {
+  width: 100%; display: flex; align-items: center; gap: 14px;
+  background: rgba(255,255,255,0.03); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 14px 16px; cursor: pointer;
+  transition: all .18s; text-align: left; color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+}
+.wm-wallet-btn:hover {
+  background: rgba(99,102,241,0.08);
+  border-color: var(--accent);
+  transform: translateX(2px);
+}
+.wm-wallet-btn.active {
+  border-color: var(--accent);
+  background: rgba(99,102,241,0.1);
+}
+.wm-wallet-btn.not-installed { opacity: 0.7; }
+.wm-wallet-btn.not-installed:hover { opacity: 1; }
+
+.wm-wallet-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: rgba(255,255,255,0.08); display: flex;
+  align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;
+}
+.wm-wallet-icon img { width: 32px; height: 32px; object-fit: contain; border-radius: 6px; }
+.wm-wallet-icon-fallback {
+  font-size: 1.2rem; font-weight: 800; color: var(--accent-light);
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.wm-wallet-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.wm-wallet-name { font-weight: 600; font-size: 0.95rem; }
+.wm-wallet-state { font-size: 0.72rem; }
+.wm-wallet-state.detected { color: var(--success); }
+.wm-wallet-state.connecting { color: var(--warning); }
+.wm-wallet-state.install { color: var(--text-muted); }
+
+.wm-arrow { color: var(--text-muted); font-size: 1rem; transition: transform .18s; }
+.wm-wallet-btn:hover .wm-arrow { transform: translateX(3px); color: var(--accent-light); }
+
+.wm-divider {
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 24px; color: var(--text-muted); font-size: 0.75rem;
+}
+.wm-divider::before, .wm-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+.wm-empty { padding: 32px 24px; text-align: center; }
+.wm-empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+.wm-empty { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.7; }
+.wm-empty-hint { font-size: 0.82rem; color: var(--text-muted); margin-top: 8px; }
+.wm-empty-hint a { color: var(--accent-light); }
+
+.wm-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 24px;
+  border-top: 1px solid var(--border);
+  font-size: 0.72rem; color: var(--text-muted);
+}
+.wm-network-tag {
+  background: rgba(153,69,255,0.12); color: #b07fff;
+  border: 1px solid rgba(153,69,255,0.2);
+  border-radius: 20px; padding: 3px 10px; font-weight: 600;
+}
