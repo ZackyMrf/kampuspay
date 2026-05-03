@@ -2,7 +2,7 @@
 
 KampusPay Lite adalah aplikasi web untuk membuat dan membagikan payment link berbasis invoice untuk kebutuhan pembayaran kampus. Aplikasi ini memakai Solana Devnet agar pembayaran dapat diverifikasi on-chain melalui Solana Explorer, tanpa bukti transfer manual atau screenshot.
 
-Proyek ini dibangun dengan React, Vite, React Router, Solana Wallet Adapter, dan `@solana/web3.js`.
+Proyek ini dibangun dengan React, Vite, React Router, Solana Wallet Adapter, Supabase, dan `@solana/web3.js`.
 
 ## Fitur Utama
 
@@ -11,8 +11,13 @@ Proyek ini dibangun dengan React, Vite, React Router, Solana Wallet Adapter, dan
 - Pembayaran invoice menggunakan wallet Solana yang terhubung.
 - Verifikasi transaksi melalui Solana Explorer di jaringan Devnet.
 - Dashboard invoice dengan status paid/unpaid, total invoice, dan total SOL terkumpul.
+- Marketplace kampus untuk katalog jualan kantin, event, merchandise, dan jasa mahasiswa.
+- Supabase Auth untuk akun student dan seller.
+- Dashboard student untuk riwayat pembayaran dan purchased items.
+- Dashboard seller untuk produk, order, revenue, dan export order.
+- Checkout marketplace yang membuat invoice dan order otomatis.
 - Faucet Devnet bawaan untuk meminta SOL testnet saat pengujian.
-- Penyimpanan invoice di `localStorage`, sehingga tidak membutuhkan backend.
+- Penyimpanan profile, seller, product, invoice, dan order menggunakan Supabase.
 
 ## Use Case
 
@@ -32,6 +37,7 @@ KampusPay Lite cocok untuk simulasi atau prototipe pembayaran kampus seperti:
 - React Router DOM
 - Solana Web3.js
 - Solana Wallet Adapter
+- Supabase
 - QRCode React
 - ESLint
 - Vite Node Polyfills
@@ -43,6 +49,7 @@ Pastikan sudah terpasang:
 - Node.js
 - npm
 - Wallet Solana browser extension, misalnya Phantom, Backpack, atau Solflare
+- Project Supabase untuk menyimpan invoice dan item marketplace
 
 Catatan: aplikasi berjalan di Solana Devnet. SOL yang digunakan adalah token testnet, bukan aset mainnet.
 
@@ -51,6 +58,20 @@ Catatan: aplikasi berjalan di Solana Devnet. SOL yang digunakan adalah token tes
 ```bash
 npm install
 ```
+
+## Konfigurasi Supabase
+
+1. Buat project di Supabase.
+2. Buka SQL Editor, lalu jalankan isi file `supabase-schema.sql`.
+3. Salin `.env.example` menjadi `.env`.
+4. Isi environment variable berikut:
+
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+Catatan: schema saat ini memakai policy publik untuk kebutuhan demo/prototipe. Untuk production, batasi policy berdasarkan autentikasi atau role penjual/admin.
 
 ## Menjalankan Development Server
 
@@ -105,7 +126,7 @@ kampuspay/
 |   +-- components/         # Komponen UI seperti Navbar, WalletModal, FaucetModal
 |   +-- hooks/              # Helper hook wallet
 |   +-- pages/              # Halaman utama aplikasi
-|   +-- utils/              # Helper Solana, invoice storage, dan kategori
+|   +-- utils/              # Helper Solana, Supabase storage, dan kategori
 |   +-- App.jsx             # Routing utama aplikasi
 |   +-- AppProviders.jsx    # Provider Solana wallet dan connection
 |   +-- main.jsx            # Entry point React
@@ -117,23 +138,31 @@ kampuspay/
 ## Route Aplikasi
 
 - `/` - Landing page.
+- `/login` - Login email/password dengan Supabase Auth.
+- `/register` - Register student atau seller.
+- `/marketplace` - Katalog marketplace kampus.
+- `/product/:productId` - Detail produk dan checkout.
 - `/create` - Form pembuatan invoice.
 - `/pay/:invoiceId` - Halaman pembayaran invoice.
-- `/dashboard` - Dashboard pengelolaan invoice.
+- `/student/dashboard` - Dashboard student.
+- `/seller/dashboard` - Dashboard seller.
+- `/seller/products` - Produk seller.
+- `/seller/products/create` - Form tambah produk seller.
+- `/seller/orders` - Order seller.
+- `/dashboard` - Redirect ke dashboard sesuai role.
+- `/legacy/dashboard` - Dashboard invoice lama.
 
 ## Penyimpanan Data
 
-Invoice disimpan di browser menggunakan `localStorage` dengan key:
+Data marketplace disimpan di Supabase pada table:
 
-```text
-kampuspay_invoices
-```
+- `profiles`
+- `sellers`
+- `products`
+- `invoices`
+- `orders`
 
-Karena data tersimpan lokal di browser:
-
-- Invoice tidak tersinkron antar perangkat.
-- Data bisa hilang jika storage browser dibersihkan.
-- Proyek ini cocok untuk demo, prototipe, atau pengembangan awal sebelum memakai backend/database.
+Faucet cooldown/history tetap disimpan lokal di browser karena hanya dipakai sebagai state UI per wallet.
 
 ## Integrasi Solana
 
@@ -163,7 +192,7 @@ Link Explorer dibuat dengan format Devnet agar transaksi bisa diverifikasi secar
 
 ## Catatan Pengembangan
 
-- Tidak ada file environment yang wajib untuk menjalankan proyek saat ini.
+- File `.env` wajib diisi dengan kredensial Supabase sebelum aplikasi bisa menyimpan/membaca invoice dan marketplace.
 - Konfigurasi Solana endpoint berada di `src/AppProviders.jsx` dan `src/utils/solana.js`.
 - Polyfill Node untuk browser dikonfigurasi di `vite.config.js` agar library Solana berjalan stabil di Vite.
 - Wallet adapter memakai wallet yang tersedia di browser melalui Solana wallet standard.
