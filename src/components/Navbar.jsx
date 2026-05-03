@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useWallet } from '@solana/wallet-adapter-react'
+import { useAuth } from './authContext'
 import { shortenAddress } from '../hooks/useWallet'
+import { useToast } from './toastContext'
 import FaucetModal from './FaucetModal'
 import WalletModal from './WalletModal'
 import './Navbar.css'
@@ -53,6 +55,8 @@ function WalletControls({
 
 export default function Navbar() {
   const { publicKey, connected, disconnect, wallet } = useWallet()
+  const { isLoggedIn, profile, logout } = useAuth()
+  const toast = useToast()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [walletModalOpen, setWalletModalOpen] = useState(false)
@@ -60,17 +64,43 @@ export default function Navbar() {
 
   const walletAddress = publicKey?.toString()
 
-  const navLinks = [
-    { path: '/', label: 'Home' },
-    { path: '/create', label: 'Create Invoice' },
-    { path: '/dashboard', label: 'Dashboard' },
-  ]
+  const dashboardPath = profile?.role === 'seller' ? '/seller/dashboard' : '/student/dashboard'
+  const navLinks = isLoggedIn
+    ? profile?.role === 'seller'
+      ? [
+          { path: '/', label: 'Home' },
+          { path: '/marketplace', label: 'Marketplace' },
+          { path: '/seller/dashboard', label: 'Seller Dashboard' },
+          { path: '/seller/products', label: 'Products' },
+          { path: '/seller/orders', label: 'Orders' },
+        ]
+      : [
+          { path: '/', label: 'Home' },
+          { path: '/marketplace', label: 'Marketplace' },
+          { path: '/student/dashboard', label: 'Student Dashboard' },
+        ]
+    : [
+        { path: '/', label: 'Home' },
+        { path: '/marketplace', label: 'Marketplace' },
+        { path: '/login', label: 'Login' },
+        { path: '/register', label: 'Register' },
+      ]
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      setMenuOpen(false)
+      toast.success('Logged out.')
+    } catch (error) {
+      toast.error(error.message || 'Failed to logout.')
+    }
+  }
 
   return (
     <>
       <nav className="navbar">
         <div className="container navbar-inner">
-          <Link to="/" className="navbar-logo">
+          <Link to={isLoggedIn ? dashboardPath : '/'} className="navbar-logo">
             <span className="logo-icon">!</span>
             <span className="logo-text">
               KampusPay<span className="logo-lite">Lite</span>
@@ -98,6 +128,11 @@ export default function Navbar() {
               onOpenWalletModal={() => setWalletModalOpen(true)}
               onOpenFaucet={() => setFaucetModalOpen(true)}
             />
+            {isLoggedIn && (
+              <button className="btn btn-ghost btn-sm" onClick={handleLogout}>
+                Logout
+              </button>
+            )}
           </div>
 
           <button
@@ -142,6 +177,11 @@ export default function Navbar() {
                   setFaucetModalOpen(true)
                 }}
               />
+              {isLoggedIn && (
+                <button className="btn btn-ghost btn-full" onClick={handleLogout}>
+                  Logout
+                </button>
+              )}
             </div>
           </div>
         )}

@@ -1,5 +1,6 @@
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react'
 import App from './App'
+import { AuthProvider } from './components/AuthProvider'
 import { ToastProvider } from './components/ToastProvider'
 import { SOLANA_RPC_URL } from './utils/solanaConfig'
 
@@ -10,7 +11,9 @@ export default function AppProviders() {
     <ConnectionProvider endpoint={SOLANA_RPC_URL}>
       <WalletProvider wallets={wallets} autoConnect>
         <ToastProvider>
-          <App />
+          <AuthProvider>
+            <App />
+          </AuthProvider>
         </ToastProvider>
       </WalletProvider>
     </ConnectionProvider>
