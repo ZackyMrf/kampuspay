@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   exportInvoicesAsCsv,
@@ -33,14 +33,34 @@ export default function DashboardPage() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [sortBy, setSortBy] = useState('newest')
   const [search, setSearch] = useState('')
+  const [invoices, setInvoices] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const invoices = useMemo(
-    () => getAllInvoices().map((invoice) => ({
-      ...invoice,
-      lifecycleStatus: getInvoiceLifecycleStatus(invoice),
-    })),
-    []
-  )
+  useEffect(() => {
+    let ignore = false
+
+    async function loadInvoices() {
+      try {
+        const data = await getAllInvoices()
+        if (!ignore) {
+          setInvoices(data.map((invoice) => ({
+            ...invoice,
+            lifecycleStatus: getInvoiceLifecycleStatus(invoice),
+          })))
+        }
+      } catch (error) {
+        if (!ignore) toast.error(error.message || 'Failed to load invoices from Supabase.')
+      } finally {
+        if (!ignore) setLoading(false)
+      }
+    }
+
+    loadInvoices()
+
+    return () => {
+      ignore = true
+    }
+  }, [toast])
 
   const stats = useMemo(() => {
     const total = invoices.length
@@ -92,14 +112,22 @@ export default function DashboardPage() {
     setTimeout(() => setCopiedId(null), 2000)
   }
 
-  const exportJson = () => {
-    downloadTextFile('kampuspay-invoices.json', exportInvoicesAsJson(), 'application/json')
-    toast.success('JSON export downloaded.')
+  const exportJson = async () => {
+    try {
+      downloadTextFile('kampuspay-invoices.json', await exportInvoicesAsJson(), 'application/json')
+      toast.success('JSON export downloaded.')
+    } catch (error) {
+      toast.error(error.message || 'Failed to export JSON.')
+    }
   }
 
-  const exportCsv = () => {
-    downloadTextFile('kampuspay-invoices.csv', exportInvoicesAsCsv(), 'text/csv;charset=utf-8')
-    toast.success('CSV export downloaded.')
+  const exportCsv = async () => {
+    try {
+      downloadTextFile('kampuspay-invoices.csv', await exportInvoicesAsCsv(), 'text/csv;charset=utf-8')
+      toast.success('CSV export downloaded.')
+    } catch (error) {
+      toast.error(error.message || 'Failed to export CSV.')
+    }
   }
 
   const statCards = [
@@ -115,8 +143,8 @@ export default function DashboardPage() {
       <div className="container">
         <div className="dash-toolbar mb-6">
           <div>
-            <h1 className="page-title">Dashboard</h1>
-            <p className="page-sub">Manage invoice lifecycle, export reports, and monitor payment status.</p>
+            <h1 className="page-title">Admin Dashboard</h1>
+            <p className="page-sub">Kelola invoice, export laporan, dan pantau status pembayaran mahasiswa.</p>
           </div>
           <div className="dash-toolbar-actions">
             <button className="btn btn-outline" onClick={exportCsv}>Export CSV</button>
@@ -182,7 +210,13 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="empty-state card">
+            <div className="empty-icon">...</div>
+            <h3>Loading invoices</h3>
+            <p className="text-secondary">Fetching payment records from Supabase.</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="empty-state card">
             <div className="empty-icon">0</div>
             <h3>{invoices.length === 0 ? 'No invoices yet' : 'No matching invoices'}</h3>

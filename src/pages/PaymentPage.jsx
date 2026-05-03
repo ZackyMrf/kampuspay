@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { getInvoiceById, replaceInvoice } from '../utils/invoiceStorage'
+import { markOrderPaidByInvoice } from '../utils/marketplaceStorage'
 import { sendSOL, getExplorerUrl, getTransactionLifecycle } from '../utils/solana'
 import { getCategoryLabel } from '../utils/categories'
 import {
@@ -27,31 +28,54 @@ export default function PaymentPage() {
   const [txError, setTxError] = useState(null)
   const [walletModalOpen, setWalletModalOpen] = useState(false)
   const [faucetModalOpen, setFaucetModalOpen] = useState(false)
-  const [invoice, setInvoice] = useState(() => getInvoiceById(invoiceId))
+  const [invoice, setInvoice] = useState(null)
+  const [loadingInvoice, setLoadingInvoice] = useState(true)
   const [refreshingStatus, setRefreshingStatus] = useState(false)
 
   const lifecycleStatus = useMemo(() => getInvoiceLifecycleStatus(invoice), [invoice])
 
   useEffect(() => {
     if (!invoiceId) return undefined
+    let ignore = false
 
-    const intervalId = window.setInterval(() => {
-      const latestInvoice = getInvoiceById(invoiceId)
-      if (latestInvoice) setInvoice(latestInvoice)
-    }, 6000)
-
-    return () => window.clearInterval(intervalId)
-  }, [invoiceId])
-
-  const refreshTransactionStatus = async (showToast = false) => {
-    const latestInvoice = getInvoiceById(invoiceId)
-    if (!latestInvoice?.txSignature) {
-      if (showToast) toast.info('No transaction found yet for this invoice.')
-      setInvoice(latestInvoice)
-      return
+    async function loadInvoice() {
+      try {
+        const latestInvoice = await getInvoiceById(invoiceId)
+        if (!ignore) setInvoice(latestInvoice)
+      } catch (error) {
+        if (!ignore) toast.error(error.message || 'Failed to load invoice from Supabase.')
+      } finally {
+        if (!ignore) setLoadingInvoice(false)
+      }
     }
 
+    loadInvoice()
+
+    const intervalId = window.setInterval(() => {
+      getInvoiceById(invoiceId)
+        .then((latestInvoice) => {
+          if (!ignore && latestInvoice) setInvoice(latestInvoice)
+        })
+        .catch((error) => {
+          if (!ignore) toast.error(error.message || 'Failed to refresh invoice.')
+        })
+    }, 6000)
+
+    return () => {
+      ignore = true
+      window.clearInterval(intervalId)
+    }
+  }, [invoiceId, toast])
+
+  const refreshTransactionStatus = async (showToast = false) => {
     try {
+      const latestInvoice = await getInvoiceById(invoiceId)
+      if (!latestInvoice?.txSignature) {
+        if (showToast) toast.info('No transaction found yet for this invoice.')
+        setInvoice(latestInvoice)
+        return
+      }
+
       setRefreshingStatus(true)
       const result = await getTransactionLifecycle(latestInvoice.txSignature, connection)
       const nextStatus =
@@ -63,7 +87,7 @@ export default function PaymentPage() {
               ? 'confirmed'
               : 'pending'
 
-      const updatedInvoice = replaceInvoice(invoiceId, {
+      const updatedInvoice = await replaceInvoice(invoiceId, {
         ...latestInvoice,
         status: nextStatus,
         txError: result.error,
@@ -102,10 +126,11 @@ export default function PaymentPage() {
 
     try {
       setPaying(true)
-      const pendingInvoice = replaceInvoice(invoiceId, {
+      const pendingInvoice = await replaceInvoice(invoiceId, {
         ...invoice,
         status: 'pending',
         paidBy: walletAddress,
+        buyerWallet: walletAddress,
       })
       setInvoice(pendingInvoice)
       toast.info('Transaction submitted to wallet. Waiting for confirmation...')
@@ -119,22 +144,28 @@ export default function PaymentPage() {
         connection
       )
 
-      const confirmedInvoice = replaceInvoice(invoiceId, {
+      const paidAt = new Date().toISOString()
+      const confirmedInvoice = await replaceInvoice(invoiceId, {
         ...pendingInvoice,
-        status: 'confirmed',
+        status: 'paid',
         txSignature: signature,
-        paidAt: new Date().toISOString(),
+        paidAt,
         paidBy: walletAddress,
+        buyerWallet: walletAddress,
       })
+
+      if (confirmedInvoice.sellerId || confirmedInvoice.productId) {
+        await markOrderPaidByInvoice(invoiceId, paidAt)
+      }
 
       setInvoice(confirmedInvoice)
       toast.success('Payment confirmed on Solana Devnet.')
     } catch (error) {
       setTxError(error.message || 'Transaction failed. Please try again.')
       toast.error(error.message || 'Transaction failed.')
-      const latestInvoice = getInvoiceById(invoiceId)
+      const latestInvoice = await getInvoiceById(invoiceId)
       if (latestInvoice?.status === 'pending' && !latestInvoice.txSignature) {
-        const resetInvoice = replaceInvoice(invoiceId, {
+        const resetInvoice = await replaceInvoice(invoiceId, {
           ...latestInvoice,
           status: isInvoiceExpired(latestInvoice) ? 'expired' : 'unpaid',
         })
@@ -143,6 +174,16 @@ export default function PaymentPage() {
     } finally {
       setPaying(false)
     }
+  }
+
+  if (loadingInvoice) {
+    return (
+      <div className="page flex-center" style={{ flexDirection: 'column', gap: 16 }}>
+        <div className="spinner" />
+        <h2>Loading Invoice</h2>
+        <p className="text-secondary">Fetching payment details from Supabase.</p>
+      </div>
+    )
   }
 
   if (!invoice) {

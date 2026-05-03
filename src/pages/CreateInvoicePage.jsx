@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { QRCodeCanvas } from 'qrcode.react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { saveInvoice, generateInvoiceId } from '../utils/invoiceStorage'
@@ -14,24 +14,26 @@ import './CreateInvoicePage.css'
 
 export default function CreateInvoicePage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { publicKey, connected } = useWallet()
   const toast = useToast()
   const wallet = publicKey?.toString()
   const [walletModalOpen, setWalletModalOpen] = useState(false)
 
   const [form, setForm] = useState({
-    title: '',
-    description: '',
-    amount: '',
-    category: 'class-fee',
-    receiver: wallet || '',
+    title: searchParams.get('title') || '',
+    description: searchParams.get('description') || '',
+    amount: searchParams.get('amount') || '',
+    category: searchParams.get('category') || 'class-fee',
+    receiver: searchParams.get('receiver') || wallet || '',
     expiresAt: '',
     payerName: '',
     payerId: '',
-    notes: '',
+    notes: searchParams.get('notes') || '',
   })
   const [errors, setErrors] = useState({})
   const [createdInvoice, setCreatedInvoice] = useState(null)
+  const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const receiverAddress = form.receiver.trim()
@@ -65,7 +67,7 @@ export default function CreateInvoicePage() {
     return nextErrors
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     const nextErrors = validate(getCurrentTimestamp())
     if (Object.keys(nextErrors).length > 0) {
@@ -92,9 +94,16 @@ export default function CreateInvoicePage() {
       notes: form.notes.trim(),
     }
 
-    saveInvoice(invoice)
-    setCreatedInvoice(invoice)
-    toast.success('Invoice created successfully.')
+    try {
+      setSaving(true)
+      const savedInvoice = await saveInvoice(invoice)
+      setCreatedInvoice(savedInvoice)
+      toast.success('Invoice created successfully.')
+    } catch (error) {
+      toast.error(error.message || 'Failed to save invoice to Supabase.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const paymentUrl = createdInvoice
@@ -160,8 +169,8 @@ export default function CreateInvoicePage() {
               <button className="btn btn-outline btn-full" onClick={() => setCreatedInvoice(null)}>
                 Create another
               </button>
-              <button className="btn btn-ghost btn-full" onClick={() => navigate('/dashboard')}>
-                Go to dashboard
+              <button className="btn btn-ghost btn-full" onClick={() => navigate('/admin')}>
+                Go to admin dashboard
               </button>
               <button className="btn btn-primary btn-full" onClick={() => navigate(`/pay/${createdInvoice.id}`)}>
                 View payment page
@@ -336,8 +345,13 @@ export default function CreateInvoicePage() {
               />
             </div>
 
-            <button type="submit" className="btn btn-primary btn-full btn-lg" style={{ marginTop: 8 }}>
-              Generate invoice and payment link
+            <button
+              type="submit"
+              className="btn btn-primary btn-full btn-lg"
+              style={{ marginTop: 8 }}
+              disabled={saving}
+            >
+              {saving ? 'Saving invoice...' : 'Generate invoice and payment link'}
             </button>
           </form>
         </div>

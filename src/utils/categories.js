@@ -1,15 +1,16 @@
-// Category constants used across the app
+// Category constants used across the app.
 export const CATEGORIES = [
-  { value: 'class-fee', label: 'Class Fee', emoji: '📚' },
-  { value: 'campus-event', label: 'Campus Event', emoji: '🎉' },
-  { value: 'donation', label: 'Donation', emoji: '🤝' },
-  { value: 'canteen', label: 'Canteen', emoji: '🍜' },
-  { value: 'organization', label: 'Organization', emoji: '🏛️' },
-  { value: 'other', label: 'Other', emoji: '💡' },
+  { value: 'class-fee', label: 'Class Fee', emoji: 'CLS' },
+  { value: 'campus-event', label: 'Campus Event', emoji: 'EVT' },
+  { value: 'donation', label: 'Donation', emoji: 'DON' },
+  { value: 'canteen', label: 'Canteen', emoji: 'F&B' },
+  { value: 'marketplace', label: 'Marketplace', emoji: 'MKT' },
+  { value: 'organization', label: 'Organization', emoji: 'ORG' },
+  { value: 'other', label: 'Other', emoji: 'OTH' },
 ]
 
 export function getCategoryByValue(value) {
-  return CATEGORIES.find((c) => c.value === value) || CATEGORIES[5]
+  return CATEGORIES.find((c) => c.value === value) || CATEGORIES.at(-1)
 }
 
 export function getCategoryLabel(value) {

@@ -1,83 +1,113 @@
-/**
- * invoiceStorage.js
- * LocalStorage utilities for invoice CRUD operations.
- * Each invoice is stored with a unique ID as a JSON object.
- */
+import { assertSupabaseConfigured, supabase } from './supabaseClient'
 
-const STORAGE_KEY = 'kampuspay_invoices'
+function toInvoice(row) {
+  if (!row) return null
 
-function saveInvoices(invoices) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
-}
-
-/** Load all invoices from localStorage */
-export function getAllInvoices() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description || '',
+    amount: Number(row.amount),
+    category: row.category,
+    receiver: row.receiver,
+    creator: row.creator || '',
+    buyerWallet: row.buyer_wallet || row.paid_by || '',
+    sellerId: row.seller_id,
+    productId: row.product_id,
+    status: row.status,
+    createdAt: row.created_at,
+    expiresAt: row.expires_at,
+    txSignature: row.transaction_signature || row.tx_signature,
+    paidAt: row.paid_at,
+    paidBy: row.paid_by || row.buyer_wallet,
+    payerName: row.payer_name || '',
+    payerId: row.payer_id || '',
+    notes: row.notes || '',
+    txError: row.tx_error,
   }
 }
 
-/** Save a new invoice. Returns the saved invoice object. */
-export function saveInvoice(invoice) {
-  const invoices = getAllInvoices()
-  invoices.unshift(invoice) // newest first
-  saveInvoices(invoices)
-  return invoice
+function toInvoiceRow(invoice) {
+  return {
+    id: invoice.id,
+    title: invoice.title,
+    description: invoice.description || '',
+    amount: invoice.amount,
+    category: invoice.category,
+    receiver: invoice.receiver,
+    creator: invoice.creator || null,
+    buyer_wallet: invoice.buyerWallet || invoice.paidBy || null,
+    seller_id: invoice.sellerId || null,
+    product_id: invoice.productId || null,
+    status: invoice.status,
+    created_at: invoice.createdAt,
+    expires_at: invoice.expiresAt || null,
+    transaction_signature: invoice.txSignature || null,
+    paid_at: invoice.paidAt || null,
+    paid_by: invoice.paidBy || null,
+    payer_name: invoice.payerName || '',
+    payer_id: invoice.payerId || '',
+    notes: invoice.notes || '',
+    tx_error: invoice.txError || null,
+  }
 }
 
-/** Get a single invoice by ID */
-export function getInvoiceById(id) {
-  const invoices = getAllInvoices()
-  return invoices.find((inv) => inv.id === id) || null
+export async function getAllInvoices() {
+  assertSupabaseConfigured()
+
+  const { data, error } = await supabase
+    .from('invoices')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data.map(toInvoice)
 }
 
-/** Update an existing invoice by ID (partial update) */
-export function updateInvoice(id, updates) {
-  const invoices = getAllInvoices()
-  const idx = invoices.findIndex((inv) => inv.id === id)
-  if (idx === -1) return null
-  invoices[idx] = { ...invoices[idx], ...updates }
-  saveInvoices(invoices)
-  return invoices[idx]
+export async function saveInvoice(invoice) {
+  assertSupabaseConfigured()
+
+  const { data, error } = await supabase
+    .from('invoices')
+    .insert(toInvoiceRow(invoice))
+    .select()
+    .single()
+
+  if (error) throw error
+  return toInvoice(data)
 }
 
-/** Replace an existing invoice by ID with a fully prepared object */
-export function replaceInvoice(id, nextInvoice) {
-  const invoices = getAllInvoices()
-  const idx = invoices.findIndex((inv) => inv.id === id)
-  if (idx === -1) return null
-  invoices[idx] = nextInvoice
-  saveInvoices(invoices)
-  return nextInvoice
+export async function getInvoiceById(id) {
+  assertSupabaseConfigured()
+
+  const { data, error } = await supabase
+    .from('invoices')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) throw error
+  return toInvoice(data)
 }
 
-/** Generate a unique invoice ID */
+export async function replaceInvoice(id, nextInvoice) {
+  assertSupabaseConfigured()
+
+  const { data, error } = await supabase
+    .from('invoices')
+    .update(toInvoiceRow(nextInvoice))
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return toInvoice(data)
+}
+
 export function generateInvoiceId() {
   const timestamp = Date.now().toString(36).toUpperCase()
   const random = Math.random().toString(36).slice(2, 6).toUpperCase()
   return `KP-${timestamp}-${random}`
-}
-
-/** Get invoice stats summary */
-export function getInvoiceStats() {
-  const invoices = getAllInvoices()
-  const total = invoices.length
-  const paid = invoices.filter((i) => i.status === 'paid' || i.status === 'confirmed').length
-  const unpaid = invoices.filter(
-    (i) => !['paid', 'confirmed', 'expired', 'failed'].includes(i.status)
-  ).length
-  const expired = invoices.filter((i) => i.status === 'expired').length
-  const totalSOL = invoices
-    .filter((i) => i.status === 'paid' || i.status === 'confirmed')
-    .reduce((sum, i) => sum + Number(i.amount), 0)
-  return { total, paid, unpaid, expired, totalSOL }
-}
-
-export function exportInvoicesAsJson() {
-  return JSON.stringify(getAllInvoices(), null, 2)
 }
 
 function escapeCsv(value) {
@@ -88,8 +118,12 @@ function escapeCsv(value) {
   return text
 }
 
-export function exportInvoicesAsCsv() {
-  const invoices = getAllInvoices()
+export async function exportInvoicesAsJson() {
+  return JSON.stringify(await getAllInvoices(), null, 2)
+}
+
+export async function exportInvoicesAsCsv() {
+  const invoices = await getAllInvoices()
   const headers = [
     'id',
     'title',
@@ -97,6 +131,10 @@ export function exportInvoicesAsCsv() {
     'amount',
     'category',
     'receiver',
+    'creator',
+    'buyerWallet',
+    'sellerId',
+    'productId',
     'status',
     'createdAt',
     'expiresAt',
