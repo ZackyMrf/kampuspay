@@ -1,5 +1,7 @@
 import { assertSupabaseConfigured, supabase } from './supabaseClient'
 import { generateInvoiceId, saveInvoice } from './invoiceStorage'
+import { generatePickupCode } from './pickupCode'
+import { buildSellerTrust } from './sellerBadge'
 
 export const MARKETPLACE_CATEGORIES = [
   'Food',
@@ -23,7 +25,7 @@ function getFileExtension(file) {
   return file.type?.split('/').pop() || 'jpg'
 }
 
-function toSeller(row) {
+function toSeller(row, trust = buildSellerTrust()) {
   if (!row) return null
   return {
     id: row.id,
@@ -32,16 +34,20 @@ function toSeller(row) {
     storeDescription: row.store_description || '',
     storeCategory: row.store_category || 'Other',
     walletAddress: row.wallet_address || '',
+    verificationStatus: row.verification_status || 'new',
+    verifiedAt: row.verified_at,
+    trust,
     createdAt: row.created_at,
   }
 }
 
-function toProduct(row) {
+function toProduct(row, sellerTrustMap = new Map()) {
   if (!row) return null
+  const sellerTrust = sellerTrustMap.get(row.seller_id) || buildSellerTrust()
   return {
     id: row.id,
     sellerId: row.seller_id,
-    seller: toSeller(row.sellers),
+    seller: toSeller(row.sellers, sellerTrust),
     name: row.name,
     description: row.description || '',
     priceSol: Number(row.price_sol),
@@ -55,6 +61,7 @@ function toProduct(row) {
 
 function toOrder(row) {
   if (!row) return null
+  const invoice = row.invoices || row.invoice || null
   return {
     id: row.id,
     invoiceId: row.invoice_id,
@@ -65,11 +72,55 @@ function toOrder(row) {
     quantity: Number(row.quantity || 1),
     totalAmount: Number(row.total_amount || 0),
     status: row.status,
+    pickupCode: row.pickup_code || '',
+    pickupStatus: row.pickup_status || 'waiting_pickup',
     createdAt: row.created_at,
     paidAt: row.paid_at,
     product: row.products ? toProduct(row.products) : null,
-    invoice: row.invoices || null,
+    invoice,
+    transactionSignature: invoice?.transaction_signature || invoice?.txSignature || '',
   }
+}
+
+function uniqueValues(values) {
+  return [...new Set(values.filter(Boolean))]
+}
+
+async function getSellerTrustMap(sellerIds) {
+  const ids = uniqueValues(sellerIds)
+  const emptyMap = new Map(ids.map((id) => [id, buildSellerTrust()]))
+  if (ids.length === 0) return emptyMap
+
+  const [productsResult, ordersResult] = await Promise.all([
+    supabase
+      .from('products')
+      .select('seller_id, is_active')
+      .in('seller_id', ids),
+    supabase
+      .from('orders')
+      .select('seller_id, status')
+      .in('seller_id', ids),
+  ])
+
+  if (productsResult.error) throw productsResult.error
+  if (ordersResult.error) throw ordersResult.error
+
+  const stats = new Map(ids.map((id) => [id, { activeProducts: 0, paidOrders: 0, totalOrders: 0 }]))
+
+  productsResult.data.forEach((product) => {
+    if (!product.is_active) return
+    const sellerStats = stats.get(product.seller_id)
+    if (sellerStats) sellerStats.activeProducts += 1
+  })
+
+  ordersResult.data.forEach((order) => {
+    const sellerStats = stats.get(order.seller_id)
+    if (!sellerStats) return
+    sellerStats.totalOrders += 1
+    if (order.status === 'paid') sellerStats.paidOrders += 1
+  })
+
+  return new Map([...stats.entries()].map(([id, sellerStats]) => [id, buildSellerTrust(sellerStats)]))
 }
 
 export async function getSellerByUserId(userId) {
@@ -113,7 +164,8 @@ export async function getActiveProducts() {
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return data.map(toProduct)
+  const sellerTrustMap = await getSellerTrustMap(data.map((product) => product.seller_id))
+  return data.map((product) => toProduct(product, sellerTrustMap))
 }
 
 export async function getProductById(id) {
@@ -125,7 +177,9 @@ export async function getProductById(id) {
     .maybeSingle()
 
   if (error) throw error
-  return toProduct(data)
+  if (!data) return null
+  const sellerTrustMap = await getSellerTrustMap([data.seller_id])
+  return toProduct(data, sellerTrustMap)
 }
 
 export async function getSellerProducts(sellerId) {
@@ -137,7 +191,14 @@ export async function getSellerProducts(sellerId) {
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return data.map(toProduct)
+  const sellerTrustMap = await getSellerTrustMap([sellerId])
+  return data.map((product) => toProduct(product, sellerTrustMap))
+}
+
+export async function getSellerTrustSummary(sellerId) {
+  assertSupabaseConfigured()
+  const sellerTrustMap = await getSellerTrustMap([sellerId])
+  return sellerTrustMap.get(sellerId) || buildSellerTrust()
 }
 
 export async function createProduct(product) {
@@ -252,6 +313,7 @@ export async function createProductCheckout({ product, buyerUserId, buyerWallet,
       quantity,
       total_amount: totalAmount,
       status: 'pending',
+      pickup_status: 'waiting_pickup',
     })
     .select('*, products(*), invoices(*)')
     .single()
@@ -284,14 +346,62 @@ export async function getStudentOrders(userId) {
   return data.map(toOrder)
 }
 
-export async function markOrderPaidByInvoice(invoiceId, paidAt) {
+export async function getOrderByInvoiceId(invoiceId) {
   assertSupabaseConfigured()
   const { data, error } = await supabase
     .from('orders')
-    .update({ status: 'paid', paid_at: paidAt })
+    .select('*, products(*), invoices(*)')
+    .eq('invoice_id', invoiceId)
+    .maybeSingle()
+
+  if (error) throw error
+  return toOrder(data)
+}
+
+export async function getAllMarketplaceOrders() {
+  assertSupabaseConfigured()
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*, products(*, sellers(*)), invoices(*)')
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data.map(toOrder)
+}
+
+export async function markOrderPaidByInvoice(invoiceId, paidAt, { buyerWallet } = {}) {
+  assertSupabaseConfigured()
+  const pickupCode = generatePickupCode()
+  if (!pickupCode) throw new Error('Pickup code could not be generated. Please try again.')
+
+  const updates = {
+    status: 'paid',
+    paid_at: paidAt,
+    pickup_code: pickupCode,
+    pickup_status: 'waiting_pickup',
+  }
+
+  if (buyerWallet) updates.buyer_wallet = buyerWallet
+
+  const { data, error } = await supabase
+    .from('orders')
+    .update(updates)
     .eq('invoice_id', invoiceId)
     .select('*, products(*), invoices(*)')
     .maybeSingle()
+
+  if (error) throw error
+  return toOrder(data)
+}
+
+export async function updateOrderPickupStatus(orderId, pickupStatus) {
+  assertSupabaseConfigured()
+  const { data, error } = await supabase
+    .from('orders')
+    .update({ pickup_status: pickupStatus })
+    .eq('id', orderId)
+    .select('*, products(*), invoices(*)')
+    .single()
 
   if (error) throw error
   return toOrder(data)
@@ -310,7 +420,7 @@ export function exportOrdersAsJson(orders) {
 }
 
 export function exportOrdersAsCsv(orders) {
-  const headers = ['id', 'invoiceId', 'product', 'buyerWallet', 'quantity', 'totalAmount', 'status', 'createdAt', 'paidAt']
+  const headers = ['id', 'invoiceId', 'product', 'buyerWallet', 'quantity', 'totalAmount', 'status', 'pickupCode', 'pickupStatus', 'transactionSignature', 'createdAt', 'paidAt']
   const rows = orders.map((order) => [
     order.id,
     order.invoiceId,
@@ -319,6 +429,9 @@ export function exportOrdersAsCsv(orders) {
     order.quantity,
     order.totalAmount,
     order.status,
+    order.pickupCode,
+    order.pickupStatus,
+    order.transactionSignature,
     order.createdAt,
     order.paidAt,
   ].map(escapeCsv).join(','))

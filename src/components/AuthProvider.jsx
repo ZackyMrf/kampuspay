@@ -11,6 +11,8 @@ function toSeller(row) {
     storeDescription: row.store_description || '',
     storeCategory: row.store_category || 'Other',
     walletAddress: row.wallet_address || '',
+    verificationStatus: row.verification_status || 'new',
+    verifiedAt: row.verified_at,
     createdAt: row.created_at,
   }
 }

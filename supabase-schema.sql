@@ -16,6 +16,8 @@ create table if not exists public.sellers (
   store_description text default '',
   store_category text default 'Other',
   wallet_address text default '',
+  verification_status text default 'new',
+  verified_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -65,9 +67,20 @@ create table if not exists public.orders (
   quantity integer not null default 1,
   total_amount numeric not null,
   status text not null default 'pending',
+  pickup_code text,
+  pickup_status text default 'waiting_pickup',
   created_at timestamptz not null default now(),
   paid_at timestamptz
 );
+
+alter table public.sellers
+  add column if not exists verification_status text default 'new',
+  add column if not exists verified_at timestamptz;
+
+alter table public.orders
+  add column if not exists buyer_wallet text default '',
+  add column if not exists pickup_code text,
+  add column if not exists pickup_status text default 'waiting_pickup';
 
 alter table public.profiles enable row level security;
 alter table public.sellers enable row level security;
@@ -107,7 +120,15 @@ create policy "Invoices are updateable" on public.invoices for update using (tru
 
 create policy "Orders are readable" on public.orders for select using (true);
 create policy "Orders are insertable" on public.orders for insert with check (auth.uid() = buyer_user_id);
-create policy "Orders are updateable" on public.orders for update using (true) with check (true);
+create policy "Orders are updateable" on public.orders for update
+  using (
+    auth.uid() = buyer_user_id
+    or seller_id in (select id from public.sellers where user_id = auth.uid())
+  )
+  with check (
+    auth.uid() = buyer_user_id
+    or seller_id in (select id from public.sellers where user_id = auth.uid())
+  );
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
