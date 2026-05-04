@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { getInvoiceById, replaceInvoice } from '../utils/invoiceStorage'
-import { markOrderPaidByInvoice } from '../utils/marketplaceStorage'
+import { getOrderByInvoiceId, markOrderPaidByInvoice } from '../utils/marketplaceStorage'
+import { formatPickupStatus, getPickupStatusTone } from '../utils/pickupCode'
 import { sendSOL, getExplorerUrl, getTransactionLifecycle } from '../utils/solana'
 import { getCategoryLabel } from '../utils/categories'
 import {
@@ -29,6 +30,7 @@ export default function PaymentPage() {
   const [walletModalOpen, setWalletModalOpen] = useState(false)
   const [faucetModalOpen, setFaucetModalOpen] = useState(false)
   const [invoice, setInvoice] = useState(null)
+  const [marketplaceOrder, setMarketplaceOrder] = useState(null)
   const [loadingInvoice, setLoadingInvoice] = useState(true)
   const [refreshingStatus, setRefreshingStatus] = useState(false)
 
@@ -41,7 +43,14 @@ export default function PaymentPage() {
     async function loadInvoice() {
       try {
         const latestInvoice = await getInvoiceById(invoiceId)
-        if (!ignore) setInvoice(latestInvoice)
+        let latestOrder = null
+        if (latestInvoice?.sellerId || latestInvoice?.productId) {
+          latestOrder = await getOrderByInvoiceId(invoiceId)
+        }
+        if (!ignore) {
+          setInvoice(latestInvoice)
+          setMarketplaceOrder(latestOrder)
+        }
       } catch (error) {
         if (!ignore) toast.error(error.message || 'Failed to load invoice from Supabase.')
       } finally {
@@ -54,7 +63,17 @@ export default function PaymentPage() {
     const intervalId = window.setInterval(() => {
       getInvoiceById(invoiceId)
         .then((latestInvoice) => {
-          if (!ignore && latestInvoice) setInvoice(latestInvoice)
+          if (!latestInvoice) return null
+          if (latestInvoice.sellerId || latestInvoice.productId) {
+            return getOrderByInvoiceId(invoiceId).then((latestOrder) => ({ latestInvoice, latestOrder }))
+          }
+          return { latestInvoice, latestOrder: null }
+        })
+        .then((payload) => {
+          if (!ignore && payload?.latestInvoice) {
+            setInvoice(payload.latestInvoice)
+            setMarketplaceOrder(payload.latestOrder)
+          }
         })
         .catch((error) => {
           if (!ignore) toast.error(error.message || 'Failed to refresh invoice.')
@@ -80,11 +99,11 @@ export default function PaymentPage() {
       const result = await getTransactionLifecycle(latestInvoice.txSignature, connection)
       const nextStatus =
         result.status === 'confirmed'
-          ? 'confirmed'
+          ? 'paid'
           : result.status === 'failed'
             ? 'failed'
-            : latestInvoice.status === 'confirmed'
-              ? 'confirmed'
+            : latestInvoice.status === 'paid' || latestInvoice.status === 'confirmed'
+              ? latestInvoice.status
               : 'pending'
 
       const updatedInvoice = await replaceInvoice(invoiceId, {
@@ -155,7 +174,8 @@ export default function PaymentPage() {
       })
 
       if (confirmedInvoice.sellerId || confirmedInvoice.productId) {
-        await markOrderPaidByInvoice(invoiceId, paidAt)
+        const paidOrder = await markOrderPaidByInvoice(invoiceId, paidAt, { buyerWallet: walletAddress })
+        setMarketplaceOrder(paidOrder)
       }
 
       setInvoice(confirmedInvoice)
@@ -201,6 +221,7 @@ export default function PaymentPage() {
 
   const isConfirmed = lifecycleStatus === 'confirmed'
   const isBlocked = lifecycleStatus === 'expired' || lifecycleStatus === 'failed'
+  const isMarketplacePayment = Boolean(marketplaceOrder || invoice.productId)
 
   return (
     <div className="page">
@@ -283,6 +304,37 @@ export default function PaymentPage() {
                 <p className="pay-desc">{invoice.notes}</p>
               </div>
             </>
+          )}
+
+          {isConfirmed && (
+            <div className="payment-success-card mt-4">
+              <div>
+                <span className="detail-label">Payment Successful</span>
+                <h2>Payment confirmed on Solana Devnet.</h2>
+                <p className="text-secondary">
+                  {isMarketplacePayment
+                    ? 'Show this code to the seller to collect your item.'
+                    : 'Your invoice is paid and the transaction can be verified on Solana Explorer.'}
+                </p>
+              </div>
+              {invoice.txSignature && (
+                <div className="success-reference">
+                  <span>Transaction</span>
+                  <a href={getExplorerUrl(invoice.txSignature)} target="_blank" rel="noopener noreferrer">
+                    {shortenAddress(invoice.txSignature)}
+                  </a>
+                </div>
+              )}
+              {isMarketplacePayment && (
+                <div className="pickup-code-panel">
+                  <span>Pickup Code</span>
+                  <strong>{marketplaceOrder?.pickupCode || '-'}</strong>
+                  <small className={`badge badge-${getPickupStatusTone(marketplaceOrder?.pickupStatus)}`}>
+                    {formatPickupStatus(marketplaceOrder?.pickupStatus)}
+                  </small>
+                </div>
+              )}
+            </div>
           )}
 
           {invoice.txSignature && (

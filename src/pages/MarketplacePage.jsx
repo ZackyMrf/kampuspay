@@ -8,6 +8,7 @@ import {
   getActiveProducts,
   MARKETPLACE_CATEGORIES,
 } from '../utils/marketplaceStorage'
+import { getSellerBadgeTone } from '../utils/sellerBadge'
 import './MarketplacePage.css'
 
 export default function MarketplacePage() {
@@ -134,7 +135,13 @@ export default function MarketplacePage() {
                 <h2>{product.name}</h2>
                 <p>{product.description || 'Campus marketplace product.'}</p>
                 <div className="market-meta">
-                  <span>{product.seller?.storeName || 'Campus Seller'}</span>
+                  <div className="market-seller-trust">
+                    <strong>{product.seller?.storeName || 'Campus Seller'}</strong>
+                    <span className={`badge badge-${getSellerBadgeTone(product.seller?.trust?.badge)}`}>
+                      {product.seller?.trust?.badge || 'New Seller'}
+                    </span>
+                    <small>Trust Score: {product.seller?.trust?.trustScore || 0}%</small>
+                  </div>
                   <span>{Number(product.priceSol).toFixed(3)} SOL</span>
                 </div>
                 <div className="market-card-bottom">

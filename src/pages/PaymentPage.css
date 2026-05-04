@@ -43,6 +43,50 @@
   background: rgba(255,255,255,0.45);
   border: 1px solid rgba(17,24,39,0.08);
 }
+.payment-success-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(21, 150, 109, 0.18);
+  background:
+    linear-gradient(135deg, rgba(21, 150, 109, 0.12), rgba(255, 255, 255, 0.72));
+}
+.payment-success-card h2 {
+  margin: 4px 0 4px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+.success-reference,
+.pickup-code-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(17, 24, 39, 0.08);
+}
+.success-reference span,
+.pickup-code-panel span {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.success-reference a {
+  color: var(--success);
+  font-family: 'IBM Plex Mono', 'Courier New', monospace;
+  text-decoration: none;
+}
+.pickup-code-panel strong {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.6rem;
+  letter-spacing: 0.08em;
+}
 .pay-actions { display: flex; flex-direction: column; gap: 12px; }
 .pay-wallet-info {
   display: flex; align-items: center; gap: 8px;
@@ -78,7 +122,9 @@
 @media (max-width: 768px) {
   .pay-header,
   .detail-row,
-  .pay-status-actions {
+  .pay-status-actions,
+  .success-reference,
+  .pickup-code-panel {
     flex-direction: column;
     align-items: flex-start;
   }

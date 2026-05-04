@@ -200,6 +200,24 @@
   font-size: 0.82rem;
 }
 
+.market-seller-trust {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.market-seller-trust strong {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.market-seller-trust small {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
 .market-wallet {
   margin-top: 12px;
   padding: 10px 12px;
@@ -253,6 +271,49 @@
   margin-bottom: 0;
 }
 
+.seller-trust-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.seller-trust-card h2 {
+  margin-top: 4px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.2rem;
+}
+
+.seller-trust-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.seller-trust-grid div {
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(17, 24, 39, 0.08);
+}
+
+.seller-trust-grid strong,
+.seller-trust-grid span {
+  display: block;
+}
+
+.seller-trust-grid strong {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.15rem;
+}
+
+.seller-trust-grid span {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
 .market-form {
   scroll-margin-top: 110px;
 }
@@ -281,7 +342,8 @@
   .market-controls,
   .market-grid,
   .market-summary,
-  .market-form-grid {
+  .market-form-grid,
+  .seller-trust-grid {
     grid-template-columns: 1fr;
   }
 

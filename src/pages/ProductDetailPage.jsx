@@ -4,6 +4,7 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { useAuth } from '../components/authContext'
 import { useToast } from '../components/toastContext'
 import { createProductCheckout, getProductById } from '../utils/marketplaceStorage'
+import { getSellerBadgeTone } from '../utils/sellerBadge'
 import './MarketplacePage.css'
 
 export default function ProductDetailPage() {
@@ -77,6 +78,7 @@ export default function ProductDetailPage() {
   }
 
   const maxQty = Math.max(1, product.stock)
+  const sellerTrust = product.seller?.trust
 
   return (
     <div className="page">
@@ -95,6 +97,20 @@ export default function ProductDetailPage() {
               <div className="detail-row"><span className="detail-label">Seller</span><strong>{product.seller?.storeName || 'Campus Seller'}</strong></div>
               <div className="detail-row"><span className="detail-label">Price</span><strong>{Number(product.priceSol).toFixed(3)} SOL</strong></div>
               <div className="detail-row"><span className="detail-label">Stock</span><span>{product.stock}</span></div>
+            </div>
+            <div className="seller-trust-card mt-6">
+              <div>
+                <span className="detail-label">Seller Trust</span>
+                <h2>{product.seller?.storeName || 'Campus Seller'}</h2>
+              </div>
+              <span className={`badge badge-${getSellerBadgeTone(sellerTrust?.badge)}`}>
+                {sellerTrust?.badge || 'New Seller'}
+              </span>
+              <div className="seller-trust-grid">
+                <div><strong>{sellerTrust?.paidOrders || 0}</strong><span>Paid Orders</span></div>
+                <div><strong>{sellerTrust?.trustScore || 0}%</strong><span>Trust Score</span></div>
+                <div><strong>{sellerTrust?.activeProducts || 0}</strong><span>Active Products</span></div>
+              </div>
             </div>
             <div className="form-group mt-6">
               <label className="form-label">Quantity</label>

@@ -5,6 +5,8 @@ import { useAuth } from '../components/authContext'
 import { useToast } from '../components/toastContext'
 import { shortenAddress } from '../hooks/useWallet'
 import { getStudentOrders } from '../utils/marketplaceStorage'
+import { getExplorerUrl } from '../utils/solana'
+import { formatPickupStatus, getPickupStatusTone } from '../utils/pickupCode'
 import './DashboardRole.css'
 
 export default function StudentDashboardPage() {
@@ -71,14 +73,22 @@ export default function StudentDashboardPage() {
           ) : (
             <div className="table-wrap">
               <table>
-                <thead><tr><th>Product</th><th>Quantity</th><th>Total</th><th>Status</th><th>Invoice</th></tr></thead>
+                <thead><tr><th>Product</th><th>Total</th><th>Status</th><th>Pickup Code</th><th>Pickup Status</th><th>Transaction</th><th>Invoice</th></tr></thead>
                 <tbody>
                   {orders.map((order) => (
                     <tr key={order.id}>
-                      <td>{order.product?.name || 'Product'}</td>
-                      <td>{order.quantity}</td>
+                      <td>{order.product?.name || 'Product'}<div className="text-muted text-sm">{order.quantity} item</div></td>
                       <td>{order.totalAmount.toFixed(3)} SOL</td>
                       <td><span className={`badge ${order.status === 'paid' ? 'badge-success' : 'badge-warning'}`}>{order.status}</span></td>
+                      <td className="font-mono">{order.pickupCode || '-'}</td>
+                      <td><span className={`badge badge-${getPickupStatusTone(order.pickupStatus)}`}>{formatPickupStatus(order.pickupStatus)}</span></td>
+                      <td>
+                        {order.transactionSignature ? (
+                          <a href={getExplorerUrl(order.transactionSignature)} target="_blank" rel="noopener noreferrer" className="tx-link">
+                            {shortenAddress(order.transactionSignature)}
+                          </a>
+                        ) : '-'}
+                      </td>
                       <td><Link to={`/pay/${order.invoiceId}`} className="btn btn-outline btn-sm">Open</Link></td>
                     </tr>
                   ))}
