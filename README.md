@@ -16,6 +16,9 @@ Proyek ini dibangun dengan React, Vite, React Router, Solana Wallet Adapter, Sup
 - Dashboard student untuk riwayat pembayaran dan purchased items.
 - Dashboard seller untuk produk, order, revenue, dan export order.
 - Checkout marketplace yang membuat invoice dan order otomatis.
+- Product Pickup Code setelah pembayaran marketplace berhasil.
+- Verified Campus Seller Badge yang dihitung dari produk aktif dan paid order.
+- Kampus AI Assistant, chat bubble rule-based untuk rekomendasi produk, seller terpercaya, order, pickup code, dan bantuan pembayaran.
 - Faucet Devnet bawaan untuk meminta SOL testnet saat pengujian.
 - Penyimpanan profile, seller, product, invoice, dan order menggunakan Supabase.
 
@@ -73,6 +76,27 @@ VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 
 Catatan: schema saat ini memakai policy publik untuk kebutuhan demo/prototipe. Untuk production, batasi policy berdasarkan autentikasi atau role penjual/admin.
 
+## Fitur Marketplace MVP
+
+### Product Pickup Code
+
+Setelah student berhasil membayar order marketplace di Solana Devnet, KampusPay membuat pickup code seperti `KP-4821-7390`. Kode ini muncul di halaman pembayaran sukses, dashboard student, dan halaman seller orders. Student menunjukkan kode tersebut ke seller saat mengambil barang, lalu seller bisa menandai order sebagai `Picked Up`.
+
+### Verified Campus Seller Badge
+
+Badge seller dihitung otomatis dari aktivitas marketplace:
+
+- `New Seller` - belum punya produk aktif dan belum ada paid order.
+- `Campus Seller` - punya minimal 1 produk aktif.
+- `Verified Campus Seller` - punya minimal 1 paid order.
+- `Trusted Seller` - punya minimal 5 paid order.
+
+Trust score dihitung dari rasio paid order terhadap total order. Badge dan trust score tampil di kartu produk, detail produk, seller dashboard, dan seller orders.
+
+### Kampus AI Assistant
+
+Kampus AI Assistant adalah floating chat assistant untuk student. Untuk MVP, assistant ini belum memakai external AI API dan masih berupa rule-based smart recommendation engine yang membaca data Supabase. Assistant bisa membantu mencari makanan, produk murah, produk populer, seller terpercaya, riwayat order, pickup code, pending pickup, dan bantuan pembayaran. Nanti fitur ini bisa ditingkatkan ke integrasi LLM tanpa mengubah konsep UI utama.
+
 ## Menjalankan Development Server
 
 ```bash
@@ -115,6 +139,8 @@ npm run lint
 6. Pembayar membuka link invoice dan menghubungkan wallet.
 7. Pembayar mengirim SOL di jaringan Devnet.
 8. Invoice diperbarui menjadi paid dan transaksi dapat dicek di Solana Explorer.
+9. Untuk order marketplace, order ikut berubah menjadi paid dan pickup code dibuat otomatis.
+10. Student menunjukkan pickup code ke seller, lalu seller menandai order sebagai picked up.
 
 ## Struktur Folder
 
@@ -162,6 +188,8 @@ Data marketplace disimpan di Supabase pada table:
 - `invoices`
 - `orders`
 
+Kolom order marketplace juga menyimpan `pickup_code` dan `pickup_status` untuk proses pengambilan barang.
+
 Faucet cooldown/history tetap disimpan lokal di browser karena hanya dipakai sebagai state UI per wallet.
 
 ## Integrasi Solana
@@ -178,6 +206,15 @@ Transaksi dikirim dengan `SystemProgram.transfer` dari `@solana/web3.js`. Setela
 - `txSignature`
 - `paidAt`
 - `paidBy`
+- `buyerWallet`
+
+Jika invoice berasal dari marketplace, order terkait juga diperbarui dengan:
+
+- `status: paid`
+- `pickupCode`
+- `pickupStatus: waiting_pickup`
+- `paidAt`
+- `buyerWallet`
 
 Link Explorer dibuat dengan format Devnet agar transaksi bisa diverifikasi secara publik.
 
