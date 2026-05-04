@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Routes, Route, useParams } from 'react-router-dom'
 import Navbar from './components/Navbar'
+import KampusAIAssistant from './components/ai/KampusAIAssistant'
 import { useAuth } from './components/authContext'
 import LandingPage from './pages/LandingPage'
 import CreateInvoicePage from './pages/CreateInvoicePage'
@@ -85,6 +86,7 @@ export default function App() {
             </div>
           </div>
         </footer>
+        <KampusAIAssistant />
       </div>
     </BrowserRouter>
   )
