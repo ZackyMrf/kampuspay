@@ -24,6 +24,17 @@ export default defineConfig({
     'process.env': {},
   },
   optimizeDeps: {
-    include: ['buffer', '@solana/web3.js', '@solana/wallet-adapter-react'],
+    noDiscovery: true,
+    include: [
+      '@solana/wallet-adapter-react',
+      '@solana/web3.js',
+      '@supabase/supabase-js',
+      'buffer',
+      'qrcode.react',
+      'react',
+      'react-dom',
+      'react-dom/client',
+      'react-router-dom',
+    ],
   },
 })
