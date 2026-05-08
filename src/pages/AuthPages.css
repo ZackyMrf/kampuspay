@@ -30,6 +30,65 @@
   color: var(--text-secondary);
 }
 
+.auth-wallet-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 72px;
+  padding: 14px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.auth-wallet-panel.connected {
+  border-color: rgba(19, 151, 112, 0.25);
+  background: rgba(241, 255, 250, 0.68);
+}
+
+.auth-wallet-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.auth-wallet-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.auth-wallet-title {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.auth-wallet-address,
+.auth-wallet-note {
+  color: var(--text-secondary);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.auth-wallet-note {
+  padding: 12px 14px;
+  border: 1px dashed rgba(17, 24, 39, 0.14);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.46);
+  font-family: inherit;
+}
+
+.auth-wallet-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .seller-fields {
   padding: 18px;
   border-radius: 22px;
@@ -46,5 +105,18 @@
   .auth-card {
     justify-self: stretch;
     max-width: none;
+  }
+
+  .auth-wallet-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .auth-wallet-actions {
+    width: 100%;
+  }
+
+  .auth-wallet-actions .btn {
+    flex: 1;
   }
 }

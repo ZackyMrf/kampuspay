@@ -40,10 +40,6 @@ export default function ProductDetailPage() {
       navigate('/login')
       return
     }
-    if (!connected || !publicKey) {
-      toast.error('Connect wallet dulu sebelum checkout.')
-      return
-    }
     if (!product.seller?.walletAddress) {
       toast.error('Seller wallet belum tersedia.')
       return
@@ -54,7 +50,7 @@ export default function ProductDetailPage() {
       const { invoice } = await createProductCheckout({
         product,
         buyerUserId: user.id,
-        buyerWallet: publicKey.toString(),
+        buyerWallet: connected && publicKey ? publicKey.toString() : '',
         quantity,
       })
       toast.success('Invoice checkout dibuat.')

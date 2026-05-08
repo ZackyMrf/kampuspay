@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useWallet } from '@solana/wallet-adapter-react'
 import { useAuth } from '../components/authContext'
 import { useToast } from '../components/toastContext'
 import {
@@ -8,9 +7,9 @@ import {
   exportOrdersAsJson,
   getSellerOrders,
   getSellerProducts,
-  updateSellerProfile,
 } from '../utils/marketplaceStorage'
 import { buildSellerTrust, getSellerBadgeTone } from '../utils/sellerBadge'
+import { formatIdr, formatPaymentMethod, formatPaymentStatus, getPaymentStatusTone, PAID_ORDER_STATUSES } from '../utils/paymentMethods'
 import './DashboardRole.css'
 
 function downloadTextFile(filename, content, type) {
@@ -24,14 +23,11 @@ function downloadTextFile(filename, content, type) {
 }
 
 export default function SellerDashboardPage() {
-  const { seller, refreshProfile } = useAuth()
-  const { publicKey } = useWallet()
+  const { profile, seller } = useAuth()
   const toast = useToast()
-  const walletInputRef = useRef(null)
   const [products, setProducts] = useState([])
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
-  const [savingWallet, setSavingWallet] = useState(false)
 
   useEffect(() => {
     if (!seller?.id) return
@@ -52,27 +48,20 @@ export default function SellerDashboardPage() {
     }
   }, [seller?.id, toast])
 
-  const saveWallet = async () => {
-    if (!seller?.id) return
-    try {
-      setSavingWallet(true)
-      await updateSellerProfile(seller.id, { walletAddress: walletInputRef.current?.value.trim() || '' })
-      await refreshProfile()
-      toast.success('Seller wallet saved.')
-    } catch (error) {
-      toast.error(error.message || 'Failed to save seller wallet.')
-    } finally {
-      setSavingWallet(false)
-    }
-  }
-
   const stats = useMemo(() => ({
     products: products.length,
     activeProducts: products.filter((product) => product.isActive).length,
     totalOrders: orders.length,
-    paidOrders: orders.filter((order) => order.status === 'paid').length,
-    pendingOrders: orders.filter((order) => order.status !== 'paid').length,
-    revenue: orders.filter((order) => order.status === 'paid').reduce((sum, order) => sum + order.totalAmount, 0),
+    paidOrders: orders.filter((order) => PAID_ORDER_STATUSES.has(order.status)).length,
+    solanaPaidOrders: orders.filter((order) => order.status === 'paid' && order.paymentMethod === 'solana').length,
+    qrisDemoOrders: orders.filter((order) => order.paymentMethod === 'qris' && order.status === 'paid_demo').length,
+    cashPendingOrders: orders.filter((order) => order.status === 'cash_pending').length,
+    paymentReviewOrders: orders.filter((order) => order.status === 'payment_review').length,
+    pendingOrders: orders.filter((order) => !PAID_ORDER_STATUSES.has(order.status)).length,
+    revenue: orders.filter((order) => order.status === 'paid' && order.paymentMethod === 'solana').reduce((sum, order) => sum + order.totalAmount, 0),
+    idrRevenue: orders
+      .filter((order) => ['qris', 'bank_transfer', 'cash_on_pickup'].includes(order.paymentMethod) && PAID_ORDER_STATUSES.has(order.status))
+      .reduce((sum, order) => sum + Number(order.fiatAmount || order.totalAmount * 1000000), 0),
   }), [orders, products])
   const sellerTrust = useMemo(() => buildSellerTrust({
     activeProducts: stats.activeProducts,
@@ -84,10 +73,15 @@ export default function SellerDashboardPage() {
     <div className="page">
       <div className="container">
         <header className="role-header">
-          <div>
-            <span className="section-tag">Seller Dashboard</span>
-            <h1>{seller?.storeName || 'Seller Store'}</h1>
-            <p className="text-secondary">{seller?.walletAddress || 'Wallet penerima belum diisi.'}</p>
+          <div className="role-title-with-avatar">
+            <div className="role-avatar">
+              {profile?.avatar_url ? <img src={profile.avatar_url} alt={profile?.full_name || 'Seller'} /> : <span>{(profile?.full_name || seller?.storeName || 'S').charAt(0).toUpperCase()}</span>}
+            </div>
+            <div>
+              <span className="section-tag">Seller Dashboard</span>
+              <h1>{seller?.storeName || 'Seller Store'}</h1>
+              <p className="text-secondary">{seller?.walletAddress || profile?.wallet_address || 'Wallet penerima belum diisi.'}</p>
+            </div>
           </div>
           <div className="role-actions">
             <button className="btn btn-outline" onClick={() => downloadTextFile('seller-orders.csv', exportOrdersAsCsv(orders), 'text/csv')}>Export CSV</button>
@@ -99,8 +93,15 @@ export default function SellerDashboardPage() {
         <div className="dashboard-grid">
           <div className="card stat-card"><div className="stat-number">{stats.products}</div><div className="stat-label">Products</div></div>
           <div className="card stat-card"><div className="stat-number">{stats.totalOrders}</div><div className="stat-label">Orders</div></div>
-          <div className="card stat-card"><div className="stat-number">{stats.paidOrders}</div><div className="stat-label">Paid</div></div>
+          <div className="card stat-card"><div className="stat-number">{stats.solanaPaidOrders}</div><div className="stat-label">Solana paid</div></div>
           <div className="card stat-card"><div className="stat-number">{stats.revenue.toFixed(3)}</div><div className="stat-label">SOL Revenue</div></div>
+        </div>
+
+        <div className="dashboard-grid">
+          <div className="card stat-card"><div className="stat-number">{stats.qrisDemoOrders}</div><div className="stat-label">QRIS demo paid</div></div>
+          <div className="card stat-card"><div className="stat-number">{stats.cashPendingOrders}</div><div className="stat-label">Cash pending</div></div>
+          <div className="card stat-card"><div className="stat-number">{stats.paymentReviewOrders}</div><div className="stat-label">Payment review</div></div>
+          <div className="card stat-card"><div className="stat-number">{formatIdr(stats.idrRevenue)}</div><div className="stat-label">Estimated IDR revenue</div></div>
         </div>
 
         <section className="seller-badge-panel">
@@ -118,36 +119,6 @@ export default function SellerDashboardPage() {
           </div>
         </section>
 
-        <section className="card dashboard-section">
-          <div className="flex-between gap-4" style={{ alignItems: 'end', flexWrap: 'wrap' }}>
-            <div style={{ flex: '1 1 360px' }}>
-              <label className="form-label">Wallet Penerima Seller</label>
-              <input
-                key={seller?.id}
-                ref={walletInputRef}
-                className="form-input font-mono"
-                defaultValue={seller?.walletAddress || ''}
-                placeholder="Solana wallet address untuk menerima pembayaran"
-              />
-            </div>
-            <div className="role-actions">
-              {publicKey && (
-                <button
-                  className="btn btn-outline"
-                  onClick={() => {
-                    if (walletInputRef.current) walletInputRef.current.value = publicKey.toString()
-                  }}
-                >
-                  Use connected wallet
-                </button>
-              )}
-              <button className="btn btn-primary" onClick={saveWallet} disabled={savingWallet}>
-                {savingWallet ? 'Saving...' : 'Save Wallet'}
-              </button>
-            </div>
-          </div>
-        </section>
-
         <section className="dashboard-section">
           <h2 className="mb-6">Recent orders</h2>
           {loading ? (
@@ -157,14 +128,18 @@ export default function SellerDashboardPage() {
           ) : (
             <div className="table-wrap">
               <table>
-                <thead><tr><th>Product</th><th>Buyer Wallet</th><th>Total</th><th>Status</th><th>Pickup</th><th>Invoice</th></tr></thead>
+                <thead><tr><th>Product</th><th>Buyer Wallet</th><th>Total</th><th>Payment</th><th>Status</th><th>Pickup</th><th>Invoice</th></tr></thead>
                 <tbody>
                   {orders.slice(0, 8).map((order) => (
                     <tr key={order.id}>
                       <td>{order.product?.name || 'Product'}</td>
                       <td className="font-mono">{order.buyerWallet || '-'}</td>
-                      <td>{order.totalAmount.toFixed(3)} SOL</td>
-                      <td><span className={`badge ${order.status === 'paid' ? 'badge-success' : 'badge-warning'}`}>{order.status}</span></td>
+                      <td>
+                        {order.totalAmount.toFixed(3)} SOL
+                        {order.fiatAmount ? <div className="text-muted text-sm">{formatIdr(order.fiatAmount)}</div> : null}
+                      </td>
+                      <td><span className="badge badge-muted">{formatPaymentMethod(order.paymentMethod)}</span></td>
+                      <td><span className={`badge badge-${getPaymentStatusTone(order.status)}`}>{formatPaymentStatus(order.status, order.paymentMethod)}</span></td>
                       <td className="font-mono">{order.pickupCode || '-'}</td>
                       <td><Link to={`/pay/${order.invoiceId}`} className="btn btn-outline btn-sm">Open</Link></td>
                     </tr>

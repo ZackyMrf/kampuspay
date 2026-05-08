@@ -2,11 +2,19 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../components/authContext'
 import { useToast } from '../components/toastContext'
-import { getSellerOrders, getSellerTrustSummary, updateOrderPickupStatus } from '../utils/marketplaceStorage'
+import {
+  confirmReviewPaymentByOrder,
+  getSellerOrders,
+  getSellerTrustSummary,
+  markCashOrderPaidAndPickedUp,
+  rejectReviewPaymentByOrder,
+  updateOrderPickupStatus,
+} from '../utils/marketplaceStorage'
 import { shortenAddress } from '../hooks/useWallet'
 import { getExplorerUrl } from '../utils/solana'
 import { formatPickupStatus, getPickupStatusTone } from '../utils/pickupCode'
 import { getSellerBadgeTone } from '../utils/sellerBadge'
+import { formatIdr, formatPaymentMethod, formatPaymentStatus, getPaymentStatusTone, PAID_ORDER_STATUSES } from '../utils/paymentMethods'
 import './DashboardRole.css'
 
 export default function SellerOrdersPage() {
@@ -49,6 +57,45 @@ export default function SellerOrdersPage() {
     }
   }
 
+  const confirmReviewPayment = async (orderId, method) => {
+    try {
+      setUpdatingId(orderId)
+      const updatedOrder = await confirmReviewPaymentByOrder(orderId)
+      setOrders((current) => current.map((order) => order.id === orderId ? updatedOrder : order))
+      toast.success(`${method === 'qris' ? 'QRIS' : 'Bank transfer'} payment confirmed as Paid Demo.`)
+    } catch (error) {
+      toast.error(error.message || 'Seller confirmation failed.')
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
+  const rejectReviewPayment = async (orderId) => {
+    try {
+      setUpdatingId(orderId)
+      const updatedOrder = await rejectReviewPaymentByOrder(orderId)
+      setOrders((current) => current.map((order) => order.id === orderId ? updatedOrder : order))
+      toast.success('Payment review rejected.')
+    } catch (error) {
+      toast.error(error.message || 'Failed to reject payment.')
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
+  const confirmCashPickup = async (orderId) => {
+    try {
+      setUpdatingId(orderId)
+      const updatedOrder = await markCashOrderPaidAndPickedUp(orderId)
+      setOrders((current) => current.map((order) => order.id === orderId ? updatedOrder : order))
+      toast.success('Cash payment marked as paid and picked up.')
+    } catch (error) {
+      toast.error(error.message || 'Seller confirmation failed.')
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
   return (
     <div className="page">
       <div className="container">
@@ -72,15 +119,27 @@ export default function SellerOrdersPage() {
         ) : (
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Order</th><th>Product</th><th>Buyer Wallet</th><th>Total</th><th>Status</th><th>Pickup Code</th><th>Pickup Status</th><th>Transaction</th><th>Action</th></tr></thead>
+              <thead><tr><th>Order</th><th>Product</th><th>Buyer Wallet</th><th>Total</th><th>Payment</th><th>Status</th><th>Pickup Code</th><th>Pickup Status</th><th>Transaction</th><th>Action</th></tr></thead>
               <tbody>
                 {orders.map((order) => (
                   <tr key={order.id}>
                     <td className="font-mono">{shortenAddress(order.id)}</td>
                     <td><Link to={`/product/${order.productId}`}>{order.product?.name || 'Product'}</Link></td>
                     <td className="font-mono">{order.buyerWallet ? shortenAddress(order.buyerWallet) : '-'}</td>
-                    <td>{order.totalAmount.toFixed(3)} SOL<div className="text-muted text-sm">{order.quantity} item</div></td>
-                    <td><span className={`badge ${order.status === 'paid' ? 'badge-success' : 'badge-warning'}`}>{order.status}</span></td>
+                    <td>
+                      {order.totalAmount.toFixed(3)} SOL
+                      {order.fiatAmount ? <div className="text-muted text-sm">{formatIdr(order.fiatAmount)}</div> : null}
+                      <div className="text-muted text-sm">{order.quantity} item</div>
+                    </td>
+                    <td>
+                      <span className="badge badge-muted">{formatPaymentMethod(order.paymentMethod)}</span>
+                      {order.paymentProofUrl && (
+                        <div className="text-sm mt-4">
+                          <a href={order.paymentProofUrl} target="_blank" rel="noopener noreferrer" className="tx-link">Proof</a>
+                        </div>
+                      )}
+                    </td>
+                    <td><span className={`badge badge-${getPaymentStatusTone(order.status)}`}>{formatPaymentStatus(order.status, order.paymentMethod)}</span></td>
                     <td className="font-mono">{order.pickupCode || '-'}</td>
                     <td><span className={`badge badge-${getPickupStatusTone(order.pickupStatus)}`}>{formatPickupStatus(order.pickupStatus)}</span></td>
                     <td>
@@ -91,13 +150,44 @@ export default function SellerOrdersPage() {
                       ) : '-'}
                     </td>
                     <td>
-                      <button
-                        className="btn btn-outline btn-sm"
-                        onClick={() => markPickedUp(order.id)}
-                        disabled={order.status !== 'paid' || order.pickupStatus === 'picked_up' || updatingId === order.id}
-                      >
-                        {updatingId === order.id ? 'Updating...' : 'Mark as Picked Up'}
-                      </button>
+                      <div className="order-actions">
+                        {order.status === 'payment_review' && (
+                          <>
+                            <button
+                              className="btn btn-success btn-sm"
+                              onClick={() => confirmReviewPayment(order.id, order.paymentMethod)}
+                              disabled={updatingId === order.id}
+                            >
+                              {updatingId === order.id ? 'Confirming...' : `Confirm ${formatPaymentMethod(order.paymentMethod)} Payment`}
+                            </button>
+                            <button
+                              className="btn btn-outline btn-sm"
+                              onClick={() => rejectReviewPayment(order.id)}
+                              disabled={updatingId === order.id}
+                            >
+                              Reject Payment
+                            </button>
+                          </>
+                        )}
+                        {order.status === 'cash_pending' && (
+                          <button
+                            className="btn btn-success btn-sm"
+                            onClick={() => confirmCashPickup(order.id)}
+                            disabled={updatingId === order.id}
+                          >
+                            {updatingId === order.id ? 'Updating...' : 'Mark as Paid & Picked Up'}
+                          </button>
+                        )}
+                        {order.status !== 'payment_review' && order.status !== 'cash_pending' && (
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={() => markPickedUp(order.id)}
+                            disabled={!PAID_ORDER_STATUSES.has(order.status) || order.pickupStatus === 'picked_up' || updatingId === order.id}
+                          >
+                            {updatingId === order.id ? 'Updating...' : 'Mark as Picked Up'}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

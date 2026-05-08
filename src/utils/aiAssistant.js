@@ -3,6 +3,7 @@ import {
   getAllMarketplaceOrders,
   getStudentOrders,
 } from './marketplaceStorage'
+import { PAID_ORDER_STATUSES, PICKUP_READY_STATUSES } from './paymentMethods'
 
 const FOOD_WORDS = ['makanan', 'food', 'lapar', 'nasi', 'kantin', 'snack', 'minum', 'drink']
 const CHEAP_WORDS = ['murah', 'cheap', 'termurah', 'budget', 'hemat']
@@ -11,7 +12,7 @@ const TRUSTED_WORDS = ['seller terpercaya', 'trusted', 'verified', 'terpercaya',
 const ORDER_WORDS = ['order', 'pesanan', 'riwayat pembelian', 'belanjaan']
 const PICKUP_WORDS = ['pickup', 'kode', 'ambil', 'pengambilan']
 const PENDING_PICKUP_WORDS = ['belum diambil', 'pending pickup', 'waiting pickup']
-const PAYMENT_WORDS = ['bayar', 'payment', 'wallet', 'invoice', 'solana', 'phantom']
+const PAYMENT_WORDS = ['bayar', 'payment', 'wallet', 'invoice', 'solana', 'phantom', 'qris', 'cash', 'tunai', 'transfer', 'metode']
 
 function includesAny(text, words) {
   return words.some((word) => text.includes(word))
@@ -28,7 +29,7 @@ function sortByTrustThenRecent(products) {
 function getFrequentCategory(orders) {
   const counts = new Map()
   orders
-    .filter((order) => order.status === 'paid' && order.product?.category)
+    .filter((order) => PAID_ORDER_STATUSES.has(order.status) && order.product?.category)
     .forEach((order) => counts.set(order.product.category, (counts.get(order.product.category) || 0) + 1))
 
   return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || ''
@@ -79,7 +80,7 @@ export async function getPopularProducts() {
   const paidCounts = new Map()
 
   orders
-    .filter((order) => order.status === 'paid')
+    .filter((order) => PAID_ORDER_STATUSES.has(order.status))
     .forEach((order) => paidCounts.set(order.productId, (paidCounts.get(order.productId) || 0) + 1))
 
   if (paidCounts.size === 0) return products.slice(0, 5)
@@ -102,12 +103,12 @@ export async function getTrustedSellerProducts() {
 
 export async function getLatestPickupCode(userId) {
   const orders = await getStudentOrders(userId)
-  return orders.find((order) => order.status === 'paid' && order.pickupCode) || null
+  return orders.find((order) => PICKUP_READY_STATUSES.has(order.status) && order.pickupCode) || null
 }
 
 export async function getPendingPickups(userId) {
   const orders = await getStudentOrders(userId)
-  return orders.filter((order) => order.status === 'paid' && order.pickupStatus === 'waiting_pickup').slice(0, 5)
+  return orders.filter((order) => PICKUP_READY_STATUSES.has(order.status) && order.pickupStatus === 'waiting_pickup').slice(0, 5)
 }
 
 export async function handleAssistantMessage({ message, user, profile }) {
@@ -165,7 +166,7 @@ export async function handleAssistantMessage({ message, user, profile }) {
 
   if (intent === 'payment_help' || intent === 'invoice_help') {
     return {
-      text: 'Untuk bayar: buka halaman invoice, connect Phantom wallet, pastikan wallet di Solana Devnet, ambil Devnet SOL dari faucet kalau saldo kurang, lalu klik Pay Now. Setelah sukses, order jadi paid dan pickup code muncul.',
+      text: 'KampusPay mendukung 4 metode: Solana Devnet Wallet untuk on-chain demo payment yang bisa dicek di Explorer, QRIS Simulation untuk demo pembayaran lokal Indonesia, Cash on Pickup untuk bayar langsung ke seller saat ambil barang, dan Bank Transfer Simulation kalau tersedia. Untuk Solana, connect wallet, pastikan ada Devnet SOL, lalu klik Pay Now. Untuk QRIS dan bank, ini demo only dan seller harus konfirmasi sebelum status jadi Paid Demo. Untuk cash, order di-reserve dan pickup code muncul untuk dibawa ke seller.',
     }
   }
 

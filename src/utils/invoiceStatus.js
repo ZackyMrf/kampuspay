@@ -2,8 +2,11 @@ export function getInvoiceLifecycleStatus(invoice, now = Date.now()) {
   if (!invoice) return 'unknown'
 
   if (invoice.status === 'failed') return 'failed'
-  if (invoice.status === 'confirmed' || invoice.status === 'paid') return 'confirmed'
+  if (invoice.status === 'cancelled') return 'cancelled'
+  if (invoice.status === 'confirmed' || invoice.status === 'paid' || invoice.status === 'paid_demo') return 'confirmed'
   if (invoice.status === 'pending') return 'pending'
+  if (invoice.status === 'payment_review') return 'payment_review'
+  if (invoice.status === 'cash_pending') return 'cash_pending'
 
   if (invoice.expiresAt && new Date(invoice.expiresAt).getTime() < now) {
     return 'expired'
@@ -22,6 +25,14 @@ export function formatInvoiceStatusLabel(status) {
       return 'Confirmed'
     case 'pending':
       return 'Pending'
+    case 'payment_review':
+      return 'Payment Review'
+    case 'cash_pending':
+      return 'Cash Pending'
+    case 'paid_demo':
+      return 'Paid Demo'
+    case 'cancelled':
+      return 'Cancelled'
     case 'failed':
       return 'Failed'
     case 'expired':
@@ -39,7 +50,12 @@ export function getInvoiceStatusTone(status) {
       return 'success'
     case 'pending':
       return 'purple'
+    case 'payment_review':
+      return 'purple'
+    case 'cash_pending':
+      return 'cyan'
     case 'failed':
+    case 'cancelled':
       return 'danger'
     case 'expired':
       return 'muted'

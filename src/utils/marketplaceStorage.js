@@ -1,7 +1,8 @@
 import { assertSupabaseConfigured, supabase } from './supabaseClient'
-import { generateInvoiceId, saveInvoice } from './invoiceStorage'
+import { generateInvoiceId, getInvoiceById, saveInvoice } from './invoiceStorage'
 import { generatePickupCode } from './pickupCode'
 import { buildSellerTrust } from './sellerBadge'
+import { CANCELLABLE_ORDER_STATUSES, PAID_ORDER_STATUSES } from './paymentMethods'
 
 export const MARKETPLACE_CATEGORIES = [
   'Food',
@@ -14,6 +15,7 @@ export const MARKETPLACE_CATEGORIES = [
 ]
 
 const PRODUCT_IMAGES_BUCKET = 'product-images'
+const PAYMENT_PROOFS_BUCKET = 'payment-proofs'
 
 export function getMarketplaceCategoryLabel(value) {
   return MARKETPLACE_CATEGORIES.includes(value) ? value : 'Other'
@@ -79,6 +81,13 @@ function toOrder(row) {
     product: row.products ? toProduct(row.products) : null,
     invoice,
     transactionSignature: invoice?.transaction_signature || invoice?.txSignature || '',
+    paymentMethod: row.payment_method || invoice?.payment_method || 'solana',
+    paymentProofUrl: row.payment_proof_url || invoice?.payment_proof_url || '',
+    fiatAmount: row.fiat_amount === null || row.fiat_amount === undefined
+      ? (invoice?.fiat_amount === null || invoice?.fiat_amount === undefined ? null : Number(invoice.fiat_amount))
+      : Number(row.fiat_amount),
+    fiatCurrency: row.fiat_currency || invoice?.fiat_currency || 'IDR',
+    paymentNote: row.payment_note || invoice?.payment_note || '',
   }
 }
 
@@ -117,7 +126,7 @@ async function getSellerTrustMap(sellerIds) {
     const sellerStats = stats.get(order.seller_id)
     if (!sellerStats) return
     sellerStats.totalOrders += 1
-    if (order.status === 'paid') sellerStats.paidOrders += 1
+    if (PAID_ORDER_STATUSES.has(order.status)) sellerStats.paidOrders += 1
   })
 
   return new Map([...stats.entries()].map(([id, sellerStats]) => [id, buildSellerTrust(sellerStats)]))
@@ -300,6 +309,11 @@ export async function createProductCheckout({ product, buyerUserId, buyerWallet,
     payerName: '',
     payerId: '',
     notes: 'Marketplace checkout',
+    paymentMethod: 'solana',
+    paymentProofUrl: '',
+    fiatAmount: null,
+    fiatCurrency: 'IDR',
+    paymentNote: '',
   })
 
   const { data, error } = await supabase
@@ -314,8 +328,13 @@ export async function createProductCheckout({ product, buyerUserId, buyerWallet,
       total_amount: totalAmount,
       status: 'pending',
       pickup_status: 'waiting_pickup',
+      payment_method: 'solana',
+      payment_proof_url: null,
+      fiat_amount: null,
+      fiat_currency: 'IDR',
+      payment_note: null,
     })
-    .select('*, products(*), invoices(*)')
+    .select('*, products(*, sellers(*)), invoices(*)')
     .single()
 
   if (error) throw error
@@ -326,7 +345,7 @@ export async function getSellerOrders(sellerId) {
   assertSupabaseConfigured()
   const { data, error } = await supabase
     .from('orders')
-    .select('*, products(*), invoices(*)')
+    .select('*, products(*, sellers(*)), invoices(*)')
     .eq('seller_id', sellerId)
     .order('created_at', { ascending: false })
 
@@ -338,7 +357,7 @@ export async function getStudentOrders(userId) {
   assertSupabaseConfigured()
   const { data, error } = await supabase
     .from('orders')
-    .select('*, products(*), invoices(*)')
+    .select('*, products(*, sellers(*)), invoices(*)')
     .eq('buyer_user_id', userId)
     .order('created_at', { ascending: false })
 
@@ -350,8 +369,19 @@ export async function getOrderByInvoiceId(invoiceId) {
   assertSupabaseConfigured()
   const { data, error } = await supabase
     .from('orders')
-    .select('*, products(*), invoices(*)')
+    .select('*, products(*, sellers(*)), invoices(*)')
     .eq('invoice_id', invoiceId)
+    .maybeSingle()
+
+  if (error) throw error
+  return toOrder(data)
+}
+
+async function getOrderById(orderId) {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*, products(*, sellers(*)), invoices(*)')
+    .eq('id', orderId)
     .maybeSingle()
 
   if (error) throw error
@@ -369,13 +399,53 @@ export async function getAllMarketplaceOrders() {
   return data.map(toOrder)
 }
 
+export async function cancelOrderByInvoice(invoiceId, note = 'Order cancelled by student before payment completion') {
+  assertSupabaseConfigured()
+  const existingOrder = await getOrderByInvoiceId(invoiceId)
+  if (!existingOrder) throw new Error('Order not found.')
+  if (PAID_ORDER_STATUSES.has(existingOrder.status)) {
+    throw new Error('Order yang sudah dibayar tidak bisa dibatalkan.')
+  }
+  if (!CANCELLABLE_ORDER_STATUSES.has(existingOrder.status)) {
+    throw new Error('Order ini tidak bisa dibatalkan dari status saat ini.')
+  }
+
+  const { error: invoiceError } = await supabase
+    .from('invoices')
+    .update({
+      status: 'cancelled',
+      payment_note: note,
+    })
+    .eq('id', invoiceId)
+    .select('*')
+    .single()
+
+  if (invoiceError) throw invoiceError
+
+  const { data: orderData, error: orderError } = await supabase
+    .from('orders')
+    .update({
+      status: 'cancelled',
+      payment_note: note,
+    })
+    .eq('invoice_id', invoiceId)
+    .select('*, products(*, sellers(*)), invoices(*)')
+    .single()
+
+  if (orderError) throw orderError
+  const invoice = await getInvoiceById(invoiceId)
+  return { invoice, order: toOrder(orderData) }
+}
+
 export async function markOrderPaidByInvoice(invoiceId, paidAt, { buyerWallet } = {}) {
   assertSupabaseConfigured()
-  const pickupCode = generatePickupCode()
+  const existingOrder = await getOrderByInvoiceId(invoiceId)
+  const pickupCode = existingOrder?.pickupCode || generatePickupCode()
   if (!pickupCode) throw new Error('Pickup code could not be generated. Please try again.')
 
   const updates = {
     status: 'paid',
+    payment_method: 'solana',
     paid_at: paidAt,
     pickup_code: pickupCode,
     pickup_status: 'waiting_pickup',
@@ -387,10 +457,220 @@ export async function markOrderPaidByInvoice(invoiceId, paidAt, { buyerWallet } 
     .from('orders')
     .update(updates)
     .eq('invoice_id', invoiceId)
-    .select('*, products(*), invoices(*)')
+    .select('*, products(*, sellers(*)), invoices(*)')
     .maybeSingle()
 
   if (error) throw error
+  return toOrder(data)
+}
+
+export async function uploadPaymentProof(file, invoiceId) {
+  assertSupabaseConfigured()
+  if (!file) return ''
+
+  const extension = getFileExtension(file).replace(/[^a-z0-9]/g, '') || 'jpg'
+  const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  const path = `${invoiceId}/${uniqueId}.${extension}`
+
+  const { error } = await supabase.storage
+    .from(PAYMENT_PROOFS_BUCKET)
+    .upload(path, file, {
+      cacheControl: '3600',
+      contentType: file.type || 'image/jpeg',
+      upsert: false,
+    })
+
+  if (error) throw error
+
+  const { data } = supabase.storage.from(PAYMENT_PROOFS_BUCKET).getPublicUrl(path)
+  return data.publicUrl
+}
+
+export async function submitReviewPaymentByInvoice(invoiceId, {
+  paymentMethod,
+  fiatAmount,
+  fiatCurrency = 'IDR',
+  paymentProofUrl = '',
+  paymentNote,
+} = {}) {
+  assertSupabaseConfigured()
+
+  const note = paymentNote || `${paymentMethod === 'qris' ? 'QRIS' : 'Bank transfer'} demo payment submitted for review`
+
+  const { data: invoice, error: invoiceError } = await supabase
+    .from('invoices')
+    .update({
+      status: 'payment_review',
+      payment_method: paymentMethod,
+      payment_proof_url: paymentProofUrl || null,
+      fiat_amount: fiatAmount,
+      fiat_currency: fiatCurrency,
+      payment_note: note,
+    })
+    .eq('id', invoiceId)
+    .select('*')
+    .single()
+
+  if (invoiceError) throw invoiceError
+
+  const { data: orderData, error: orderError } = await supabase
+    .from('orders')
+    .update({
+      status: 'payment_review',
+      payment_method: paymentMethod,
+      payment_proof_url: paymentProofUrl || null,
+      fiat_amount: fiatAmount,
+      fiat_currency: fiatCurrency,
+      payment_note: note,
+    })
+    .eq('invoice_id', invoiceId)
+    .select('*, products(*, sellers(*)), invoices(*)')
+    .maybeSingle()
+
+  if (orderError) throw orderError
+  return { invoice, order: toOrder(orderData) }
+}
+
+export async function reserveCashPaymentByInvoice(invoiceId) {
+  assertSupabaseConfigured()
+  const existingOrder = await getOrderByInvoiceId(invoiceId)
+  const pickupCode = existingOrder ? (existingOrder.pickupCode || generatePickupCode()) : ''
+  if (existingOrder && !pickupCode) throw new Error('Pickup code could not be generated. Please try again.')
+
+  const note = 'Cash payment will be completed on pickup'
+
+  const { data: invoice, error: invoiceError } = await supabase
+    .from('invoices')
+    .update({
+      status: 'cash_pending',
+      payment_method: 'cash_on_pickup',
+      payment_note: note,
+    })
+    .eq('id', invoiceId)
+    .select('*')
+    .single()
+
+  if (invoiceError) throw invoiceError
+
+  let order = null
+  if (existingOrder) {
+    const { data, error } = await supabase
+      .from('orders')
+      .update({
+        status: 'cash_pending',
+        payment_method: 'cash_on_pickup',
+        payment_note: note,
+        pickup_code: pickupCode,
+        pickup_status: 'waiting_pickup',
+      })
+      .eq('invoice_id', invoiceId)
+      .select('*, products(*, sellers(*)), invoices(*)')
+      .single()
+
+    if (error) throw error
+    order = toOrder(data)
+  }
+
+  return { invoice, order }
+}
+
+export async function confirmReviewPaymentByOrder(orderId) {
+  assertSupabaseConfigured()
+  const existingOrder = await getOrderById(orderId)
+  if (!existingOrder) throw new Error('Order not found.')
+
+  const paidAt = new Date().toISOString()
+  const pickupCode = existingOrder.pickupCode || generatePickupCode()
+  if (!pickupCode) throw new Error('Pickup code could not be generated. Please try again.')
+
+  const { data, error } = await supabase
+    .from('orders')
+    .update({
+      status: 'paid_demo',
+      paid_at: paidAt,
+      pickup_code: pickupCode,
+      pickup_status: 'waiting_pickup',
+    })
+    .eq('id', orderId)
+    .select('*, products(*, sellers(*)), invoices(*)')
+    .single()
+
+  if (error) throw error
+
+  const { error: invoiceError } = await supabase
+    .from('invoices')
+    .update({
+      status: 'paid_demo',
+      paid_at: paidAt,
+      payment_method: existingOrder.paymentMethod,
+    })
+    .eq('id', existingOrder.invoiceId)
+
+  if (invoiceError) throw invoiceError
+  return toOrder(data)
+}
+
+export async function rejectReviewPaymentByOrder(orderId) {
+  assertSupabaseConfigured()
+  const existingOrder = await getOrderById(orderId)
+  if (!existingOrder) throw new Error('Order not found.')
+
+  const { data, error } = await supabase
+    .from('orders')
+    .update({
+      status: 'cancelled',
+      payment_note: 'Payment rejected by seller',
+    })
+    .eq('id', orderId)
+    .select('*, products(*, sellers(*)), invoices(*)')
+    .single()
+
+  if (error) throw error
+
+  const { error: invoiceError } = await supabase
+    .from('invoices')
+    .update({
+      status: 'cancelled',
+      payment_note: 'Payment rejected by seller',
+    })
+    .eq('id', existingOrder.invoiceId)
+
+  if (invoiceError) throw invoiceError
+  return toOrder(data)
+}
+
+export async function markCashOrderPaidAndPickedUp(orderId) {
+  assertSupabaseConfigured()
+  const existingOrder = await getOrderById(orderId)
+  if (!existingOrder) throw new Error('Order not found.')
+
+  const paidAt = new Date().toISOString()
+
+  const { data, error } = await supabase
+    .from('orders')
+    .update({
+      status: 'paid_demo',
+      paid_at: paidAt,
+      pickup_status: 'picked_up',
+    })
+    .eq('id', orderId)
+    .select('*, products(*, sellers(*)), invoices(*)')
+    .single()
+
+  if (error) throw error
+
+  const { error: invoiceError } = await supabase
+    .from('invoices')
+    .update({
+      status: 'paid_demo',
+      paid_at: paidAt,
+      payment_method: 'cash_on_pickup',
+    })
+    .eq('id', existingOrder.invoiceId)
+
+  if (invoiceError) throw invoiceError
   return toOrder(data)
 }
 
@@ -400,7 +680,7 @@ export async function updateOrderPickupStatus(orderId, pickupStatus) {
     .from('orders')
     .update({ pickup_status: pickupStatus })
     .eq('id', orderId)
-    .select('*, products(*), invoices(*)')
+    .select('*, products(*, sellers(*)), invoices(*)')
     .single()
 
   if (error) throw error
@@ -420,7 +700,7 @@ export function exportOrdersAsJson(orders) {
 }
 
 export function exportOrdersAsCsv(orders) {
-  const headers = ['id', 'invoiceId', 'product', 'buyerWallet', 'quantity', 'totalAmount', 'status', 'pickupCode', 'pickupStatus', 'transactionSignature', 'createdAt', 'paidAt']
+  const headers = ['id', 'invoiceId', 'product', 'buyerWallet', 'quantity', 'totalAmount', 'status', 'paymentMethod', 'fiatAmount', 'fiatCurrency', 'pickupCode', 'pickupStatus', 'transactionSignature', 'createdAt', 'paidAt']
   const rows = orders.map((order) => [
     order.id,
     order.invoiceId,
@@ -429,6 +709,9 @@ export function exportOrdersAsCsv(orders) {
     order.quantity,
     order.totalAmount,
     order.status,
+    order.paymentMethod,
+    order.fiatAmount,
+    order.fiatCurrency,
     order.pickupCode,
     order.pickupStatus,
     order.transactionSignature,

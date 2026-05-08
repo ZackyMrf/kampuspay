@@ -4,9 +4,10 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { useAuth } from '../components/authContext'
 import { useToast } from '../components/toastContext'
 import { shortenAddress } from '../hooks/useWallet'
-import { getStudentOrders } from '../utils/marketplaceStorage'
+import { cancelOrderByInvoice, getStudentOrders } from '../utils/marketplaceStorage'
 import { getExplorerUrl } from '../utils/solana'
 import { formatPickupStatus, getPickupStatusTone } from '../utils/pickupCode'
+import { CANCELLABLE_ORDER_STATUSES, formatIdr, formatPaymentMethod, formatPaymentStatus, getPaymentStatusTone, PAID_ORDER_STATUSES } from '../utils/paymentMethods'
 import './DashboardRole.css'
 
 export default function StudentDashboardPage() {
@@ -15,6 +16,7 @@ export default function StudentDashboardPage() {
   const toast = useToast()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
+  const [cancellingId, setCancellingId] = useState(null)
 
   useEffect(() => {
     let ignore = false
@@ -33,21 +35,42 @@ export default function StudentDashboardPage() {
 
   const stats = useMemo(() => ({
     total: orders.length,
-    paid: orders.filter((order) => order.status === 'paid').length,
-    pending: orders.filter((order) => order.status !== 'paid').length,
-    amount: orders.filter((order) => order.status === 'paid').reduce((sum, order) => sum + order.totalAmount, 0),
+    paid: orders.filter((order) => PAID_ORDER_STATUSES.has(order.status)).length,
+    pending: orders.filter((order) => !PAID_ORDER_STATUSES.has(order.status)).length,
+    amount: orders.filter((order) => order.status === 'paid' && order.paymentMethod === 'solana').reduce((sum, order) => sum + order.totalAmount, 0),
   }), [orders])
+
+  const cancelOrder = async (order) => {
+    const confirmed = window.confirm('Batalkan order ini? Status transaksi akan berubah menjadi cancelled.')
+    if (!confirmed) return
+
+    try {
+      setCancellingId(order.id)
+      const { order: cancelledOrder } = await cancelOrderByInvoice(order.invoiceId)
+      setOrders((current) => current.map((item) => item.id === order.id ? cancelledOrder : item))
+      toast.success('Order berhasil dibatalkan.')
+    } catch (error) {
+      toast.error(error.message || 'Gagal membatalkan order.')
+    } finally {
+      setCancellingId(null)
+    }
+  }
 
   return (
     <div className="page">
       <div className="container">
         <header className="role-header">
-          <div>
-            <span className="section-tag">Student Dashboard</span>
-            <h1>Halo, {profile?.full_name || 'Student'}.</h1>
-            <p className="text-secondary">
-              Wallet: {publicKey ? shortenAddress(publicKey.toString()) : profile?.wallet_address || 'Not connected'}
-            </p>
+          <div className="role-title-with-avatar">
+            <div className="role-avatar">
+              {profile?.avatar_url ? <img src={profile.avatar_url} alt={profile?.full_name || 'Student'} /> : <span>{(profile?.full_name || 'S').charAt(0).toUpperCase()}</span>}
+            </div>
+            <div>
+              <span className="section-tag">Student Dashboard</span>
+              <h1>Halo, {profile?.full_name || 'Student'}.</h1>
+              <p className="text-secondary">
+                Wallet: {publicKey ? shortenAddress(publicKey.toString()) : profile?.wallet_address || 'Not connected'}
+              </p>
+            </div>
           </div>
           <div className="role-actions">
             <Link to="/marketplace" className="btn btn-primary">Open Marketplace</Link>
@@ -73,13 +96,22 @@ export default function StudentDashboardPage() {
           ) : (
             <div className="table-wrap">
               <table>
-                <thead><tr><th>Product</th><th>Total</th><th>Status</th><th>Pickup Code</th><th>Pickup Status</th><th>Transaction</th><th>Invoice</th></tr></thead>
+                <thead><tr><th>Product</th><th>Total</th><th>Payment</th><th>Status</th><th>Pickup Code</th><th>Pickup Status</th><th>Transaction</th><th>Action</th></tr></thead>
                 <tbody>
                   {orders.map((order) => (
                     <tr key={order.id}>
                       <td>{order.product?.name || 'Product'}<div className="text-muted text-sm">{order.quantity} item</div></td>
-                      <td>{order.totalAmount.toFixed(3)} SOL</td>
-                      <td><span className={`badge ${order.status === 'paid' ? 'badge-success' : 'badge-warning'}`}>{order.status}</span></td>
+                      <td>
+                        {order.totalAmount.toFixed(3)} SOL
+                        {order.fiatAmount ? <div className="text-muted text-sm">{formatIdr(order.fiatAmount)}</div> : null}
+                      </td>
+                      <td>
+                        <span className="badge badge-muted">{formatPaymentMethod(order.paymentMethod)}</span>
+                        {['qris', 'bank_transfer'].includes(order.paymentMethod) && (
+                          <div className="text-muted text-sm">{order.paymentProofUrl ? 'Proof uploaded' : 'No proof uploaded'}</div>
+                        )}
+                      </td>
+                      <td><span className={`badge badge-${getPaymentStatusTone(order.status)}`}>{formatPaymentStatus(order.status, order.paymentMethod)}</span></td>
                       <td className="font-mono">{order.pickupCode || '-'}</td>
                       <td><span className={`badge badge-${getPickupStatusTone(order.pickupStatus)}`}>{formatPickupStatus(order.pickupStatus)}</span></td>
                       <td>
@@ -89,7 +121,20 @@ export default function StudentDashboardPage() {
                           </a>
                         ) : '-'}
                       </td>
-                      <td><Link to={`/pay/${order.invoiceId}`} className="btn btn-outline btn-sm">Open</Link></td>
+                      <td>
+                        <div className="order-actions">
+                          <Link to={`/pay/${order.invoiceId}`} className="btn btn-outline btn-sm">Open</Link>
+                          {CANCELLABLE_ORDER_STATUSES.has(order.status) && (
+                            <button
+                              className="btn btn-danger btn-sm"
+                              onClick={() => cancelOrder(order)}
+                              disabled={cancellingId === order.id}
+                            >
+                              {cancellingId === order.id ? 'Cancelling...' : 'Cancel Order'}
+                            </button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

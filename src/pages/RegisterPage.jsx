@@ -3,14 +3,17 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useAuth } from '../components/authContext'
 import { useToast } from '../components/toastContext'
+import WalletModal from '../components/WalletModal'
+import { shortenAddress } from '../hooks/useWallet'
 import './AuthPages.css'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
   const toast = useToast()
-  const { publicKey } = useWallet()
+  const { publicKey, wallet, disconnect } = useWallet()
   const { register } = useAuth()
   const connectedWallet = publicKey?.toString() || ''
+  const [walletModalOpen, setWalletModalOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
@@ -18,11 +21,9 @@ export default function RegisterPage() {
     email: '',
     password: '',
     role: 'student',
-    walletAddress: connectedWallet,
     storeName: '',
     storeDescription: '',
     storeCategory: 'Food',
-    sellerWalletAddress: connectedWallet,
   })
 
   const handleChange = (event) => {
@@ -34,6 +35,14 @@ export default function RegisterPage() {
     event.preventDefault()
     setError('')
 
+    if (!connectedWallet) {
+      const message = 'Connect wallet dulu sebelum register.'
+      setError(message)
+      toast.error(message)
+      setWalletModalOpen(true)
+      return
+    }
+
     try {
       setLoading(true)
       await register({
@@ -41,12 +50,12 @@ export default function RegisterPage() {
         email: form.email.trim(),
         password: form.password,
         role: form.role,
-        walletAddress: form.walletAddress.trim() || connectedWallet,
+        walletAddress: connectedWallet,
         sellerProfile: {
           storeName: form.storeName.trim(),
           storeDescription: form.storeDescription.trim(),
           storeCategory: form.storeCategory,
-          walletAddress: form.sellerWalletAddress.trim() || connectedWallet,
+          walletAddress: connectedWallet,
         },
       })
       toast.success('Register berhasil.')
@@ -65,7 +74,7 @@ export default function RegisterPage() {
         <section className="auth-copy">
           <span className="section-tag">Create Account</span>
           <h1>Buat akun student atau seller untuk marketplace kampus.</h1>
-          <p>Seller akan langsung punya store profile sederhana. Wallet bisa dikosongkan dulu, tapi dibutuhkan saat menerima pembayaran.</p>
+          <p>Connect wallet saat register supaya alamat wallet tersimpan di akun dan bisa ikut reconnect saat login berikutnya.</p>
         </section>
 
         <form className="card auth-card" onSubmit={handleSubmit}>
@@ -95,8 +104,44 @@ export default function RegisterPage() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Wallet Address Optional</label>
-            <input className="form-input font-mono" name="walletAddress" value={form.walletAddress} onChange={handleChange} placeholder="Solana wallet address" />
+            <label className="form-label">Wallet</label>
+            <div className={`auth-wallet-panel ${connectedWallet ? 'connected' : ''}`}>
+              <div className="auth-wallet-main">
+                {wallet?.adapter?.icon && (
+                  <img
+                    src={wallet.adapter.icon}
+                    alt={wallet.adapter.name}
+                    className="auth-wallet-icon"
+                  />
+                )}
+                <div>
+                  <div className="auth-wallet-title">
+                    {connectedWallet ? wallet?.adapter?.name || 'Wallet Connected' : 'Connect Wallet'}
+                  </div>
+                  <div className="auth-wallet-address">
+                    {connectedWallet ? shortenAddress(connectedWallet) : 'Wallet akan dipakai sebagai alamat akun.'}
+                  </div>
+                </div>
+              </div>
+              <div className="auth-wallet-actions">
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setWalletModalOpen(true)}
+                >
+                  {connectedWallet ? 'Change' : 'Connect'}
+                </button>
+                {connectedWallet && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => disconnect()}
+                  >
+                    Disconnect
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
           {form.role === 'seller' && (
@@ -121,16 +166,9 @@ export default function RegisterPage() {
               </div>
               <div className="form-group">
                 <label className="form-label">Seller Wallet</label>
-                <input className="form-input font-mono" name="sellerWalletAddress" value={form.sellerWalletAddress} onChange={handleChange} placeholder="Wallet penerima pembayaran" />
-                {connectedWallet && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setForm((current) => ({ ...current, sellerWalletAddress: connectedWallet }))}
-                  >
-                    Use connected wallet
-                  </button>
-                )}
+                <div className="auth-wallet-note">
+                  Pembayaran toko akan masuk ke wallet yang terkoneksi saat register.
+                </div>
               </div>
               <div className="form-group">
                 <label className="form-label">Store Description</label>
@@ -150,6 +188,7 @@ export default function RegisterPage() {
           </div>
         </form>
       </div>
+      <WalletModal isOpen={walletModalOpen} onClose={() => setWalletModalOpen(false)} />
     </div>
   )
 }

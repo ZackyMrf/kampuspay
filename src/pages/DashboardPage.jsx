@@ -178,8 +178,11 @@ export default function DashboardPage() {
               <option value="all">All status</option>
               <option value="confirmed">Confirmed</option>
               <option value="pending">Pending</option>
+              <option value="payment_review">Payment Review</option>
+              <option value="cash_pending">Cash Pending</option>
               <option value="unpaid">Unpaid</option>
               <option value="expired">Expired</option>
+              <option value="cancelled">Cancelled</option>
               <option value="failed">Failed</option>
             </select>
             <select
@@ -256,7 +259,7 @@ export default function DashboardPage() {
                       </div>
                       {invoice.payerName && (
                         <div className="inv-meta text-muted text-sm">
-                          {invoice.payerName}{invoice.payerId ? ` · ${invoice.payerId}` : ''}
+                          {invoice.payerName}{invoice.payerId ? ` - ${invoice.payerId}` : ''}
                         </div>
                       )}
                     </td>

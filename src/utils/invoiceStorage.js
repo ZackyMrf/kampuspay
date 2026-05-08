@@ -24,6 +24,11 @@ function toInvoice(row) {
     payerId: row.payer_id || '',
     notes: row.notes || '',
     txError: row.tx_error,
+    paymentMethod: row.payment_method || 'solana',
+    paymentProofUrl: row.payment_proof_url || '',
+    fiatAmount: row.fiat_amount === null || row.fiat_amount === undefined ? null : Number(row.fiat_amount),
+    fiatCurrency: row.fiat_currency || 'IDR',
+    paymentNote: row.payment_note || '',
   }
 }
 
@@ -49,6 +54,11 @@ function toInvoiceRow(invoice) {
     payer_id: invoice.payerId || '',
     notes: invoice.notes || '',
     tx_error: invoice.txError || null,
+    payment_method: invoice.paymentMethod || 'solana',
+    payment_proof_url: invoice.paymentProofUrl || null,
+    fiat_amount: invoice.fiatAmount ?? null,
+    fiat_currency: invoice.fiatCurrency || 'IDR',
+    payment_note: invoice.paymentNote || null,
   }
 }
 
@@ -144,6 +154,11 @@ export async function exportInvoicesAsCsv() {
     'payerName',
     'payerId',
     'notes',
+    'paymentMethod',
+    'paymentProofUrl',
+    'fiatAmount',
+    'fiatCurrency',
+    'paymentNote',
   ]
 
   const rows = invoices.map((invoice) =>

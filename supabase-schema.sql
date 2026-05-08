@@ -6,6 +6,7 @@ create table if not exists public.profiles (
   full_name text,
   role text not null check (role in ('student', 'seller')),
   wallet_address text default '',
+  avatar_url text default '',
   created_at timestamptz not null default now()
 );
 
@@ -54,7 +55,12 @@ create table if not exists public.invoices (
   payer_name text default '',
   payer_id text default '',
   notes text default '',
-  tx_error text
+  tx_error text,
+  payment_method text default 'solana' check (payment_method in ('solana', 'qris', 'cash_on_pickup', 'bank_transfer')),
+  payment_proof_url text,
+  fiat_amount numeric,
+  fiat_currency text default 'IDR',
+  payment_note text
 );
 
 create table if not exists public.orders (
@@ -70,8 +76,16 @@ create table if not exists public.orders (
   pickup_code text,
   pickup_status text default 'waiting_pickup',
   created_at timestamptz not null default now(),
-  paid_at timestamptz
+  paid_at timestamptz,
+  payment_method text default 'solana' check (payment_method in ('solana', 'qris', 'cash_on_pickup', 'bank_transfer')),
+  payment_proof_url text,
+  fiat_amount numeric,
+  fiat_currency text default 'IDR',
+  payment_note text
 );
+
+alter table public.profiles
+  add column if not exists avatar_url text default '';
 
 alter table public.sellers
   add column if not exists verification_status text default 'new',
@@ -80,7 +94,35 @@ alter table public.sellers
 alter table public.orders
   add column if not exists buyer_wallet text default '',
   add column if not exists pickup_code text,
-  add column if not exists pickup_status text default 'waiting_pickup';
+  add column if not exists pickup_status text default 'waiting_pickup',
+  add column if not exists payment_method text default 'solana',
+  add column if not exists payment_proof_url text,
+  add column if not exists fiat_amount numeric,
+  add column if not exists fiat_currency text default 'IDR',
+  add column if not exists payment_note text;
+
+alter table public.invoices
+  add column if not exists payment_method text default 'solana',
+  add column if not exists payment_proof_url text,
+  add column if not exists fiat_amount numeric,
+  add column if not exists fiat_currency text default 'IDR',
+  add column if not exists payment_note text;
+
+alter table public.invoices
+  drop constraint if exists invoices_payment_method_check,
+  add constraint invoices_payment_method_check
+    check (payment_method in ('solana', 'qris', 'cash_on_pickup', 'bank_transfer')),
+  drop constraint if exists invoices_status_check,
+  add constraint invoices_status_check
+    check (status in ('unpaid', 'pending', 'paid', 'payment_review', 'paid_demo', 'cash_pending', 'cancelled', 'failed', 'expired', 'confirmed'));
+
+alter table public.orders
+  drop constraint if exists orders_payment_method_check,
+  add constraint orders_payment_method_check
+    check (payment_method in ('solana', 'qris', 'cash_on_pickup', 'bank_transfer')),
+  drop constraint if exists orders_status_check,
+  add constraint orders_status_check
+    check (status in ('pending', 'unpaid', 'paid', 'payment_review', 'paid_demo', 'cash_pending', 'cancelled'));
 
 alter table public.profiles enable row level security;
 alter table public.sellers enable row level security;
@@ -143,10 +185,42 @@ on conflict (id) do update set
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'payment-proofs',
+  'payment-proofs',
+  true,
+  3145728,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'profile-avatars',
+  'profile-avatars',
+  true,
+  3145728,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
 drop policy if exists "Product images are readable" on storage.objects;
 drop policy if exists "Sellers can upload own product images" on storage.objects;
 drop policy if exists "Sellers can update own product images" on storage.objects;
 drop policy if exists "Sellers can delete own product images" on storage.objects;
+drop policy if exists "Payment proofs are readable" on storage.objects;
+drop policy if exists "Payment proofs are uploadable" on storage.objects;
+drop policy if exists "Profile avatars are readable" on storage.objects;
+drop policy if exists "Users can upload own profile avatars" on storage.objects;
+drop policy if exists "Users can update own profile avatars" on storage.objects;
+drop policy if exists "Users can delete own profile avatars" on storage.objects;
 
 create policy "Product images are readable" on storage.objects for select
   using (bucket_id = 'product-images');
@@ -179,4 +253,35 @@ create policy "Sellers can delete own product images" on storage.objects for del
     and (storage.foldername(name))[1] in (
       select id::text from public.sellers where user_id = auth.uid()
     )
+  );
+
+create policy "Payment proofs are readable" on storage.objects for select
+  using (bucket_id = 'payment-proofs');
+
+create policy "Payment proofs are uploadable" on storage.objects for insert
+  with check (bucket_id = 'payment-proofs');
+
+create policy "Profile avatars are readable" on storage.objects for select
+  using (bucket_id = 'profile-avatars');
+
+create policy "Users can upload own profile avatars" on storage.objects for insert
+  with check (
+    bucket_id = 'profile-avatars'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+create policy "Users can update own profile avatars" on storage.objects for update
+  using (
+    bucket_id = 'profile-avatars'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  )
+  with check (
+    bucket_id = 'profile-avatars'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+create policy "Users can delete own profile avatars" on storage.objects for delete
+  using (
+    bucket_id = 'profile-avatars'
+    and (storage.foldername(name))[1] = auth.uid()::text
   );

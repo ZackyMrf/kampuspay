@@ -20,6 +20,40 @@
   justify-content: flex-end;
 }
 
+.role-title-with-avatar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.role-avatar,
+.profile-avatar-preview {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--text-primary);
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.role-avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 24px;
+  font-size: 1.8rem;
+}
+
+.role-avatar img,
+.profile-avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -29,6 +63,55 @@
 
 .dashboard-section {
   margin-top: 24px;
+}
+
+.profile-settings-card {
+  margin: 24px 0;
+}
+
+.profile-settings-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.profile-settings-head h2 {
+  margin: 6px 0 4px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.6rem;
+}
+
+.profile-avatar-preview {
+  width: 86px;
+  height: 86px;
+  border-radius: 28px;
+  font-size: 1.9rem;
+}
+
+.profile-wallet-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.profile-upload-button {
+  position: relative;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.profile-upload-button input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.profile-settings-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .seller-badge-panel {
@@ -136,6 +219,13 @@
   background: var(--success);
 }
 
+.order-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 160px;
+}
+
 @media (max-width: 900px) {
   .role-header {
     flex-direction: column;
@@ -152,6 +242,20 @@
   .seller-badge-panel {
     grid-template-columns: 1fr;
   }
+
+  .profile-wallet-row {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-wallet-row .btn,
+  .profile-settings-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .profile-settings-actions {
+    justify-content: stretch;
+  }
 }
 
 @media (max-width: 620px) {
@@ -162,5 +266,11 @@
 
   .product-image-upload {
     grid-template-columns: 1fr;
+  }
+
+  .role-title-with-avatar,
+  .profile-settings-head {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

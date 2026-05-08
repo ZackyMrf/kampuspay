@@ -81,6 +81,7 @@ export default function SellerProductsPage() {
                     <td><span className={`badge ${product.isActive ? 'badge-success' : 'badge-muted'}`}>{product.isActive ? 'active' : 'inactive'}</span></td>
                     <td>
                       <div className="role-actions">
+                        <Link className="btn btn-outline btn-sm" to={`/seller/products/${product.id}/edit`}>Edit</Link>
                         <button className="btn btn-outline btn-sm" onClick={() => toggleProduct(product)}>{product.isActive ? 'Deactivate' : 'Activate'}</button>
                         <button className="btn btn-danger btn-sm" onClick={() => removeProduct(product)}>Delete</button>
                       </div>

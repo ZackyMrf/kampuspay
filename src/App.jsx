@@ -15,6 +15,7 @@ import SellerDashboardPage from './pages/SellerDashboardPage'
 import SellerProductsPage from './pages/SellerProductsPage'
 import CreateProductPage from './pages/CreateProductPage'
 import SellerOrdersPage from './pages/SellerOrdersPage'
+import ProfileSettingsPage from './pages/ProfileSettingsPage'
 import './App.css'
 
 function PaymentRoute() {
@@ -49,6 +50,13 @@ function DashboardRedirect() {
   return <Navigate to={dashboardForRole(profile?.role)} replace />
 }
 
+function AuthGuard({ children }) {
+  const { loading, isLoggedIn } = useAuth()
+  if (loading) return <div className="page flex-center"><span className="spinner" /></div>
+  if (!isLoggedIn) return <Navigate to="/login" replace />
+  return children
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -67,7 +75,9 @@ export default function App() {
             <Route path="/seller/dashboard" element={<RoleGuard role="seller"><SellerDashboardPage /></RoleGuard>} />
             <Route path="/seller/products" element={<RoleGuard role="seller"><SellerProductsPage /></RoleGuard>} />
             <Route path="/seller/products/create" element={<RoleGuard role="seller"><CreateProductPage /></RoleGuard>} />
+            <Route path="/seller/products/:productId/edit" element={<RoleGuard role="seller"><CreateProductPage /></RoleGuard>} />
             <Route path="/seller/orders" element={<RoleGuard role="seller"><SellerOrdersPage /></RoleGuard>} />
+            <Route path="/settings/profile" element={<AuthGuard><ProfileSettingsPage /></AuthGuard>} />
             <Route path="/dashboard" element={<DashboardRedirect />} />
             <Route path="/legacy/dashboard" element={<DashboardPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
