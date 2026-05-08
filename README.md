@@ -16,6 +16,8 @@ Proyek ini dibangun dengan React, Vite, React Router, Solana Wallet Adapter, Sup
 - Dashboard student untuk riwayat pembayaran dan purchased items.
 - Dashboard seller untuk produk, order, revenue, dan export order.
 - Checkout marketplace yang membuat invoice dan order otomatis.
+- Multiple Payment Methods: Solana Devnet Wallet, QRIS Simulation, Cash on Pickup, dan Bank Transfer Simulation.
+- Order Timeline untuk melacak progres invoice dari dibuat, pembayaran dikirim, konfirmasi seller, sampai pickup.
 - Product Pickup Code setelah pembayaran marketplace berhasil.
 - Verified Campus Seller Badge yang dihitung dari produk aktif dan paid order.
 - Kampus AI Assistant, chat bubble rule-based untuk rekomendasi produk, seller terpercaya, order, pickup code, dan bantuan pembayaran.
@@ -96,6 +98,21 @@ Trust score dihitung dari rasio paid order terhadap total order. Badge dan trust
 ### Kampus AI Assistant
 
 Kampus AI Assistant adalah floating chat assistant untuk student. Untuk MVP, assistant ini belum memakai external AI API dan masih berupa rule-based smart recommendation engine yang membaca data Supabase. Assistant bisa membantu mencari makanan, produk murah, produk populer, seller terpercaya, riwayat order, pickup code, pending pickup, dan bantuan pembayaran. Nanti fitur ini bisa ditingkatkan ke integrasi LLM tanpa mengubah konsep UI utama.
+
+### Multiple Payment Methods
+
+KampusPay Lite sekarang menyediakan beberapa metode pembayaran pada halaman invoice:
+
+- `Solana Devnet Wallet` - pembayaran Web3 utama. Transaksi dikirim di Solana Devnet dan bisa diverifikasi lewat Solana Explorer.
+- `QRIS Simulation` - simulasi alur QRIS lokal Indonesia untuk kebutuhan demo hackathon. Student scan QR demo, mengirim konfirmasi, lalu seller melakukan konfirmasi manual sebelum status menjadi `Paid Demo`.
+- `Cash on Pickup` - student melakukan reservasi order dan membayar langsung ke seller saat mengambil item. Pickup code tetap dibuat untuk proses pengambilan.
+- `Bank Transfer Simulation` - instruksi transfer bank demo dengan opsi upload bukti, lalu seller mengonfirmasi manual seperti QRIS.
+
+Catatan penting: QRIS Simulation dan Bank Transfer Simulation tidak terhubung ke payment gateway asli, bukan QRIS production, dan tidak memproses uang sungguhan. Fitur ini hanya untuk MVP/demo hackathon. KampusPay Lite belum memakai Midtrans, Xendit, atau payment gateway real money lainnya.
+
+### Order Timeline
+
+Halaman pembayaran menampilkan timeline progres invoice. Untuk Solana, timeline menunjukkan invoice dibuat, transaksi wallet dikirim, dan pembayaran terkonfirmasi on-chain. Untuk QRIS/bank simulation, timeline menunjukkan pembayaran demo dikirim untuk review seller, lalu seller mengonfirmasi menjadi `Paid Demo`. Untuk Cash on Pickup, timeline menunjukkan order di-reserve dan seller menyelesaikan pembayaran saat pickup.
 
 ## Menjalankan Development Server
 
@@ -190,6 +207,15 @@ Data marketplace disimpan di Supabase pada table:
 
 Kolom order marketplace juga menyimpan `pickup_code` dan `pickup_status` untuk proses pengambilan barang.
 
+Kolom pembayaran multi-metode pada `invoices` dan `orders`:
+
+- `payment_method` - `solana`, `qris`, `cash_on_pickup`, atau `bank_transfer`.
+- `payment_proof_url` - URL bukti pembayaran opsional untuk QRIS/bank simulation.
+- `fiat_amount` dan `fiat_currency` - estimasi nominal IDR demo.
+- `payment_note` - catatan status pembayaran manual/demo.
+
+Bucket Supabase Storage `payment-proofs` dipakai untuk bukti pembayaran QRIS/bank simulation jika student mengunggah gambar.
+
 Faucet cooldown/history tetap disimpan lokal di browser karena hanya dipakai sebagai state UI per wallet.
 
 ## Integrasi Solana
@@ -203,6 +229,7 @@ Solana Devnet
 Transaksi dikirim dengan `SystemProgram.transfer` dari `@solana/web3.js`. Setelah transaksi berhasil, invoice diperbarui dengan:
 
 - `status: paid`
+- `paymentMethod: solana`
 - `txSignature`
 - `paidAt`
 - `paidBy`
@@ -211,6 +238,7 @@ Transaksi dikirim dengan `SystemProgram.transfer` dari `@solana/web3.js`. Setela
 Jika invoice berasal dari marketplace, order terkait juga diperbarui dengan:
 
 - `status: paid`
+- `paymentMethod: solana`
 - `pickupCode`
 - `pickupStatus: waiting_pickup`
 - `paidAt`
