@@ -81,18 +81,6 @@ export default function LandingPage() {
             <div className="hero-ribbon hero-ribbon-a" />
             <div className="hero-ribbon hero-ribbon-b" />
 
-            <div className="hero-topbar">
-              <div className="hero-badge">
-                <span className="badge-dot" />
-                {t('landing.badge')}
-              </div>
-              <div className="hero-mini-nav">
-                <span>{t('landing.heroNav.invoices')}</span>
-                <span>{t('landing.heroNav.collections')}</span>
-                <span>{t('landing.heroNav.devnet')}</span>
-              </div>
-            </div>
-
             <div className="hero-grid">
               <div className="hero-copy">
                 <p className="hero-kicker">KampusPay Lite</p>
