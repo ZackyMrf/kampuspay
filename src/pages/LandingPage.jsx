@@ -4,6 +4,7 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { shortenAddress } from '../hooks/useWallet'
 import WalletModal from '../components/WalletModal'
 import { useI18n } from '../i18n/LanguageProvider'
+import heroLayer from '../assets/hero.png'
 import './LandingPage.css'
 
 const features = [
@@ -63,13 +64,36 @@ const useCases = [
   { en: 'Temporary cashier booths', id: 'Kasir sementara' },
 ]
 
+const heroModes = [
+  {
+    key: 'invoice',
+    label: { en: 'Invoice', id: 'Invoice' },
+    title: { en: 'Payment link ready', id: 'Link pembayaran siap' },
+    desc: { en: 'Share a clean URL or QR code with students and buyers.', id: 'Bagikan URL atau QR code yang rapi ke mahasiswa dan pembeli.' },
+  },
+  {
+    key: 'review',
+    label: { en: 'Review', id: 'Review' },
+    title: { en: 'Seller verification', id: 'Verifikasi seller' },
+    desc: { en: 'QRIS, bank, and pickup flows stay visible in one place.', id: 'Alur QRIS, bank, dan pickup tetap terlihat di satu tempat.' },
+  },
+  {
+    key: 'settle',
+    label: { en: 'Settle', id: 'Lunas' },
+    title: { en: 'On-chain proof', id: 'Bukti on-chain' },
+    desc: { en: 'Solana payments keep a public transaction trail.', id: 'Pembayaran Solana punya jejak transaksi publik.' },
+  },
+]
+
 export default function LandingPage() {
   const { language, t } = useI18n()
   const { publicKey, connected, connecting } = useWallet()
   const wallet = publicKey?.toString()
   const [walletModalOpen, setWalletModalOpen] = useState(false)
+  const [activeMode, setActiveMode] = useState(heroModes[0].key)
 
   const text = (value) => (typeof value === 'string' ? value : value[language])
+  const selectedMode = heroModes.find((mode) => mode.key === activeMode) || heroModes[0]
 
   return (
     <div className="landing">
@@ -122,16 +146,64 @@ export default function LandingPage() {
               </div>
 
               <div className="hero-visual">
-                <div className="hero-discs">
-                  <div className="hero-disc hero-disc-back" />
-                  <div className="hero-disc hero-disc-mid" />
-                  <div className="hero-disc hero-disc-front" />
+                <div className="hero-product-card">
+                  <div className="hero-product-head">
+                    <div>
+                      <span className="product-eyebrow">Live checkout</span>
+                      <strong>KampusPay</strong>
+                    </div>
+                    <span className="product-status">Devnet</span>
+                  </div>
+
+                  <div className="product-balance">
+                    <span>Total collected</span>
+                    <strong>12.480 SOL</strong>
+                    <small>+ IDR demo payments in review</small>
+                  </div>
+
+                  <div className="product-tabs" role="tablist" aria-label="KampusPay workflow preview">
+                    {heroModes.map((mode) => (
+                      <button
+                        key={mode.key}
+                        type="button"
+                        className={activeMode === mode.key ? 'active' : ''}
+                        onClick={() => setActiveMode(mode.key)}
+                      >
+                        {text(mode.label)}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="product-preview">
+                    <div className="preview-icon">
+                      <img src={heroLayer} alt="" />
+                    </div>
+                    <div>
+                      <h3>{text(selectedMode.title)}</h3>
+                      <p>{text(selectedMode.desc)}</p>
+                    </div>
+                  </div>
+
+                  <div className="checkout-panel">
+                    <div className="checkout-row">
+                      <span>Campus Event Ticket</span>
+                      <strong>0.120 SOL</strong>
+                    </div>
+                    <div className="checkout-qr" aria-hidden="true">
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                    <div className="checkout-progress">
+                      <span style={{ width: activeMode === 'invoice' ? '38%' : activeMode === 'review' ? '68%' : '100%' }} />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="hero-side-note">
-                  <p>
-                    {t('landing.sideNote')}
-                  </p>
+                  <div className="side-note-dot" />
+                  <p>{t('landing.sideNote')}</p>
                   <Link to="/create" className="hero-join-link">
                     {t('landing.startNow')}
                   </Link>
@@ -159,7 +231,7 @@ export default function LandingPage() {
           </div>
           <div className="feature-grid">
             {features.map((feature) => (
-              <article className="card feature-card" key={feature.title}>
+              <article className="card feature-card" key={text(feature.title)}>
                 <div className="feature-index" />
                 <h3 className="feature-title">{text(feature.title)}</h3>
                 <p className="feature-desc">{text(feature.desc)}</p>
