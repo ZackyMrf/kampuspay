@@ -4,6 +4,7 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { useAuth } from '../components/authContext'
 import { useToast } from '../components/toastContext'
 import WalletModal from '../components/WalletModal'
+import PasswordInput from '../components/PasswordInput'
 import { shortenAddress } from '../hooks/useWallet'
 import { getProfileByWalletAddress } from '../utils/profileStorage'
 import { useI18n } from '../i18n/LanguageProvider'
@@ -147,13 +148,16 @@ export default function LoginPage() {
           </div>
           <div className="form-group">
             <label className="form-label">{t('auth.password')}</label>
-            <input
-              className="form-input"
-              type="password"
+            <PasswordInput
               value={form.password}
               onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+              showLabel={t('auth.showPassword')}
+              hideLabel={t('auth.hidePassword')}
               required
             />
+            <Link className="auth-forgot-link" to="/forgot-password">
+              {t('auth.forgotPassword')}
+            </Link>
           </div>
 
           {error && <div className="alert alert-error mb-6">{error}</div>}

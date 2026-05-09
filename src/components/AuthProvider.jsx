@@ -139,6 +139,21 @@ export function AuthProvider({ children }) {
     return loadProfile(data.user.id)
   }
 
+  const requestPasswordReset = async (email) => {
+    assertSupabaseConfigured()
+    const redirectTo = `${window.location.origin}/reset-password`
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+    if (error) throw error
+  }
+
+  const updatePassword = async (password) => {
+    assertSupabaseConfigured()
+    const { data, error } = await supabase.auth.updateUser({ password })
+    if (error) throw error
+    if (data.user) await loadProfile(data.user.id)
+    return data
+  }
+
   const logout = async () => {
     assertSupabaseConfigured()
     const { error } = await supabase.auth.signOut()
@@ -160,6 +175,8 @@ export function AuthProvider({ children }) {
     role: profile?.role || null,
     register,
     login,
+    requestPasswordReset,
+    updatePassword,
     logout,
     refreshProfile,
   }

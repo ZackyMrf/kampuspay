@@ -4,6 +4,7 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { useAuth } from '../components/authContext'
 import { useToast } from '../components/toastContext'
 import WalletModal from '../components/WalletModal'
+import PasswordInput from '../components/PasswordInput'
 import { shortenAddress } from '../hooks/useWallet'
 import { useI18n } from '../i18n/LanguageProvider'
 import './AuthPages.css'
@@ -101,7 +102,15 @@ export default function RegisterPage() {
             </div>
             <div className="form-group">
               <label className="form-label">{t('auth.password')}</label>
-              <input className="form-input" type="password" name="password" value={form.password} onChange={handleChange} minLength={6} required />
+              <PasswordInput
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                showLabel={t('auth.showPassword')}
+                hideLabel={t('auth.hidePassword')}
+                minLength={6}
+                required
+              />
             </div>
           </div>
 

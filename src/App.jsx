@@ -8,6 +8,8 @@ import PaymentPage from './pages/PaymentPage'
 import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 import MarketplacePage from './pages/MarketplacePage'
 import ProductDetailPage from './pages/ProductDetailPage'
 import StudentDashboardPage from './pages/StudentDashboardPage'
@@ -70,6 +72,8 @@ export default function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/marketplace" element={<MarketplacePage />} />
             <Route path="/product/:productId" element={<ProductDetailPage />} />
             <Route path="/create" element={<CreateInvoicePage />} />
