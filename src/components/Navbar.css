@@ -10,7 +10,7 @@
   align-items: center;
   justify-content: space-between;
   height: 72px;
-  gap: 24px;
+  gap: 18px;
   padding: 0 16px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.66);
@@ -22,29 +22,28 @@
 .navbar-logo {
   display: flex;
   align-items: center;
-  gap: 8px;
   text-decoration: none;
-  font-family: 'Clash Display', 'Space Grotesk', sans-serif;
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--text-primary);
+  flex: 0 0 auto;
 }
 
-.logo-icon {
-  display: inline-flex;
+.navbar-logo picture {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(203, 125, 255, 0.18), rgba(255, 212, 89, 0.2));
-  font-size: 0.95rem;
 }
 
-.logo-lite { color: var(--text-muted); }
+.navbar-logo-img {
+  display: block;
+  width: 250px;
+  max-width: min(24vw, 250px);
+  height: 42px;
+  object-fit: contain;
+  object-position: left center;
+}
 
 .navbar-links {
   display: flex;
+  flex: 1 1 auto;
+  justify-content: center;
   gap: 4px;
   padding: 5px;
   border-radius: 999px;
@@ -371,6 +370,11 @@
 }
 
 @media (max-width: 768px) {
+  .navbar-logo-img {
+    width: 178px;
+    max-width: 54vw;
+    height: 38px;
+  }
   .navbar-links { display: none; }
   .navbar-wallet { display: none; }
   .hamburger { display: flex; }
