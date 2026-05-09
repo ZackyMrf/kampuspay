@@ -5,7 +5,9 @@ import { useAuth } from './authContext'
 import { shortenAddress } from '../hooks/useWallet'
 import { useToast } from './toastContext'
 import FaucetModal from './FaucetModal'
+import LanguageToggle from './LanguageToggle'
 import WalletModal from './WalletModal'
+import { useI18n } from '../i18n/LanguageProvider'
 import './Navbar.css'
 
 function getInitials(name, fallback = 'KP') {
@@ -32,6 +34,7 @@ function WalletControls({
   onDisconnect,
   onOpenWalletModal,
   onOpenFaucet,
+  t,
 }) {
   if (!connected) {
     return (
@@ -39,7 +42,7 @@ function WalletControls({
         className={`btn btn-primary btn-sm ${full ? 'btn-full' : ''}`}
         onClick={onOpenWalletModal}
       >
-        Connect Wallet
+        {t('wallet.connect')}
       </button>
     )
   }
@@ -47,7 +50,7 @@ function WalletControls({
   return (
     <div className={`wallet-actions ${full ? 'wallet-actions-full' : ''}`}>
       <button className="btn btn-outline btn-sm wallet-faucet-btn" onClick={onOpenFaucet}>
-        Faucet
+        {t('wallet.faucet')}
       </button>
       <div className={`wallet-connected ${full ? 'wallet-full' : ''}`}>
         <div className="wallet-indicator">
@@ -62,7 +65,7 @@ function WalletControls({
           <span className="wallet-address">{shortenAddress(walletAddress)}</span>
         </div>
         <button className="btn btn-ghost btn-sm" onClick={onDisconnect}>
-          Disconnect
+          {t('wallet.disconnect')}
         </button>
       </div>
     </div>
@@ -70,6 +73,7 @@ function WalletControls({
 }
 
 export default function Navbar() {
+  const { t } = useI18n()
   const { publicKey, connected, disconnect, wallet } = useWallet()
   const { isLoggedIn, profile, logout } = useAuth()
   const toast = useToast()
@@ -86,22 +90,22 @@ export default function Navbar() {
   const navLinks = isLoggedIn
     ? profile?.role === 'seller'
       ? [
-          { path: '/', label: 'Home' },
-          { path: '/marketplace', label: 'Marketplace' },
-          { path: '/seller/dashboard', label: 'Seller Dashboard' },
-          { path: '/seller/products', label: 'Products' },
-          { path: '/seller/orders', label: 'Orders' },
+          { path: '/', label: t('nav.home') },
+          { path: '/marketplace', label: t('nav.marketplace') },
+          { path: '/seller/dashboard', label: t('nav.sellerDashboard') },
+          { path: '/seller/products', label: t('nav.products') },
+          { path: '/seller/orders', label: t('nav.orders') },
         ]
       : [
-          { path: '/', label: 'Home' },
-          { path: '/marketplace', label: 'Marketplace' },
-          { path: '/student/dashboard', label: 'Student Dashboard' },
+          { path: '/', label: t('nav.home') },
+          { path: '/marketplace', label: t('nav.marketplace') },
+          { path: '/student/dashboard', label: t('nav.studentDashboard') },
         ]
     : [
-        { path: '/', label: 'Home' },
-        { path: '/marketplace', label: 'Marketplace' },
-        { path: '/login', label: 'Login' },
-        { path: '/register', label: 'Register' },
+        { path: '/', label: t('nav.home') },
+        { path: '/marketplace', label: t('nav.marketplace') },
+        { path: '/login', label: t('nav.login') },
+        { path: '/register', label: t('nav.register') },
       ]
 
   const handleLogout = async () => {
@@ -156,17 +160,19 @@ export default function Navbar() {
               onDisconnect={() => disconnect()}
               onOpenWalletModal={() => setWalletModalOpen(true)}
               onOpenFaucet={() => setFaucetModalOpen(true)}
+              t={t}
             />
+            <LanguageToggle />
             {isLoggedIn && (
               <div className="navbar-account">
                 <button className="btn btn-ghost btn-sm" onClick={handleLogout}>
-                  Logout
+                  {t('nav.logout')}
                 </button>
                 <div className="profile-menu" ref={profileMenuRef}>
                   <button
                     className="profile-avatar-button"
                     onClick={() => setProfileMenuOpen((current) => !current)}
-                    aria-label="Open profile menu"
+                    aria-label={t('nav.openProfileMenu')}
                     aria-expanded={profileMenuOpen}
                   >
                     <ProfileAvatar profile={profile} />
@@ -175,14 +181,14 @@ export default function Navbar() {
                     <div className="profile-menu-popover">
                       <div className="profile-menu-head">
                         <strong>{profile?.full_name || 'KampusPay User'}</strong>
-                        <span>{profile?.email || profile?.role || 'Account'}</span>
+                        <span>{profile?.email || profile?.role || t('common.account')}</span>
                       </div>
                       <Link
                         to="/settings/profile"
                         className="profile-menu-link"
                         onClick={() => setProfileMenuOpen(false)}
                       >
-                        Setting Profil
+                        {t('nav.profileSettings')}
                       </Link>
                     </div>
                   )}
@@ -194,7 +200,7 @@ export default function Navbar() {
           <button
             className={`hamburger ${menuOpen ? 'open' : ''}`}
             onClick={() => setMenuOpen((current) => !current)}
-            aria-label="Toggle menu"
+            aria-label={t('nav.toggleMenu')}
           >
             <span />
             <span />
@@ -232,11 +238,13 @@ export default function Navbar() {
                   setMenuOpen(false)
                   setFaucetModalOpen(true)
                 }}
+                t={t}
               />
+              <LanguageToggle full />
               {isLoggedIn && (
                 <div className="mobile-account-row">
                   <button className="btn btn-ghost btn-full" onClick={handleLogout}>
-                    Logout
+                    {t('nav.logout')}
                   </button>
                   <Link
                     to="/settings/profile"
@@ -245,7 +253,7 @@ export default function Navbar() {
                     aria-label="Open profile settings"
                   >
                     <ProfileAvatar profile={profile} />
-                    <span>Setting Profil</span>
+                    <span>{t('nav.profileSettings')}</span>
                   </Link>
                 </div>
               )}

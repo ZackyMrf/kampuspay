@@ -34,6 +34,7 @@ import { shortenAddress } from '../hooks/useWallet'
 import { useToast } from '../components/toastContext'
 import FaucetModal from '../components/FaucetModal'
 import WalletModal from '../components/WalletModal'
+import { useI18n } from '../i18n/LanguageProvider'
 import './PaymentPage.css'
 
 function getStepState({ completed, current }) {
@@ -157,6 +158,7 @@ function buildPaymentTimeline(invoice, marketplaceOrder) {
 }
 
 export default function PaymentPage() {
+  const { t, locale } = useI18n()
   const { invoiceId } = useParams()
   const { publicKey, connected, connecting, sendTransaction, signTransaction, wallet } = useWallet()
   const { connection } = useConnection()
@@ -446,8 +448,8 @@ export default function PaymentPage() {
     return (
       <div className="page flex-center" style={{ flexDirection: 'column', gap: 16 }}>
         <div className="spinner" />
-        <h2>Loading Invoice</h2>
-        <p className="text-secondary">Fetching payment details from Supabase.</p>
+        <h2>{t('payment.loadingTitle')}</h2>
+        <p className="text-secondary">{t('payment.loadingSub')}</p>
       </div>
     )
   }
@@ -456,11 +458,11 @@ export default function PaymentPage() {
     return (
       <div className="page flex-center" style={{ flexDirection: 'column', gap: 16 }}>
         <div style={{ fontSize: '3rem' }}>?</div>
-        <h2>Invoice Not Found</h2>
+        <h2>{t('payment.notFound')}</h2>
         <p className="text-secondary">
-          Invoice ID <code>{invoiceId}</code> does not exist.
+          {t('payment.notFoundSub', { id: invoiceId })}
         </p>
-        <Link to="/" className="btn btn-primary">Back to Home</Link>
+        <Link to="/" className="btn btn-primary">{t('payment.backHome')}</Link>
       </div>
     )
   }
@@ -471,10 +473,10 @@ export default function PaymentPage() {
     <div className="page">
       <div className="container" style={{ maxWidth: 820 }}>
         <div className="pay-header">
-          <Link to="/" className="back-link">Back to KampusPay Lite</Link>
+          <Link to="/" className="back-link">{t('payment.backKampusPay')}</Link>
           <div className="pay-network-badge">
             <span className="badge-dot" style={{ background: '#9945ff' }} />
-            Solana Devnet primary
+            {t('payment.devnetPrimary')}
           </div>
         </div>
 
@@ -495,20 +497,20 @@ export default function PaymentPage() {
           </div>
 
           <div className="pay-amount-box">
-            <div className="pay-amount-label">Amount to Pay</div>
+            <div className="pay-amount-label">{t('payment.amountToPay')}</div>
             <div className="pay-amount">{invoice.amount} <span>SOL</span></div>
-            <div className="pay-amount-hint">Demo estimate: {formatIdr(fiatAmount)} at 1 SOL = {formatIdr(1000000)}.</div>
+            <div className="pay-amount-hint">{t('payment.demoEstimate', { amount: formatIdr(fiatAmount), rate: formatIdr(1000000) })}</div>
           </div>
 
           <div className="divider" />
 
           <div className="invoice-details">
             <div className="detail-row">
-              <span className="detail-label">Invoice ID</span>
+              <span className="detail-label">{t('invoice.invoiceId')}</span>
               <code className="font-mono">{invoice.id}</code>
             </div>
             <div className="detail-row">
-              <span className="detail-label">Receiver</span>
+              <span className="detail-label">{t('payment.receiver')}</span>
               <a
                 className="detail-address font-mono"
                 href={`https://explorer.solana.com/address/${invoice.receiver}?cluster=devnet`}
@@ -519,27 +521,27 @@ export default function PaymentPage() {
               </a>
             </div>
             <div className="detail-row">
-              <span className="detail-label">Payment Method</span>
+              <span className="detail-label">{t('payment.method')}</span>
               <span>{formatPaymentMethod(invoice.paymentMethod)}</span>
             </div>
             <div className="detail-row">
-              <span className="detail-label">Created</span>
-              <span>{new Date(invoice.createdAt).toLocaleDateString('id-ID', { dateStyle: 'medium' })}</span>
+              <span className="detail-label">{t('payment.created')}</span>
+              <span>{new Date(invoice.createdAt).toLocaleDateString(locale, { dateStyle: 'medium' })}</span>
             </div>
             <div className="detail-row">
-              <span className="detail-label">Deadline</span>
+              <span className="detail-label">{t('invoice.deadline')}</span>
               <span>{formatDeadline(invoice.expiresAt)}</span>
             </div>
             {invoice.payerName && (
               <div className="detail-row">
-                <span className="detail-label">Payer</span>
+                <span className="detail-label">{t('payment.payer')}</span>
                 <span>{invoice.payerName}{invoice.payerId ? ` - ${invoice.payerId}` : ''}</span>
               </div>
             )}
             {isCompleted && invoice.paidAt && (
               <div className="detail-row">
-                <span className="detail-label">Paid At</span>
-                <span>{new Date(invoice.paidAt).toLocaleString('id-ID')}</span>
+                <span className="detail-label">{t('payment.paidAt')}</span>
+                <span>{new Date(invoice.paidAt).toLocaleString(locale)}</span>
               </div>
             )}
           </div>
@@ -548,7 +550,7 @@ export default function PaymentPage() {
             <>
               <div className="divider" />
               <div className="pay-note-card">
-                <div className="detail-label">Treasurer Notes</div>
+                <div className="detail-label">{t('payment.notes')}</div>
                 <p className="pay-desc">{invoice.notes}</p>
               </div>
             </>
@@ -557,8 +559,8 @@ export default function PaymentPage() {
           <div className="payment-timeline mt-4">
             <div className="timeline-head">
               <div>
-                <span className="detail-label">Order Timeline</span>
-                <h2>Payment progress</h2>
+                <span className="detail-label">{t('payment.timeline')}</span>
+                <h2>{t('payment.progress')}</h2>
               </div>
               <span className="badge badge-muted">{formatPaymentMethod(invoice.paymentMethod)}</span>
             </div>
@@ -579,17 +581,17 @@ export default function PaymentPage() {
           {isCompleted && (
             <div className="payment-success-card mt-4">
               <div>
-                <span className="detail-label">Payment Successful</span>
-                <h2>{invoice.paymentMethod === 'solana' ? 'Payment confirmed on Solana Devnet.' : 'Paid Demo confirmed by seller.'}</h2>
+                <span className="detail-label">{t('payment.success')}</span>
+                <h2>{invoice.paymentMethod === 'solana' ? t('payment.solanaConfirmed') : t('payment.demoConfirmed')}</h2>
                 <p className="text-secondary">
                   {isMarketplacePayment
-                    ? 'Show this code to the seller to collect your item.'
-                    : 'Your invoice is marked paid in KampusPay Lite.'}
+                    ? t('payment.showPickup')
+                    : t('payment.invoicePaid')}
                 </p>
               </div>
               {invoice.txSignature && (
                 <div className="success-reference">
-                  <span>Transaction</span>
+                  <span>{t('payment.transaction')}</span>
                   <a href={getExplorerUrl(invoice.txSignature)} target="_blank" rel="noopener noreferrer">
                     {shortenAddress(invoice.txSignature)}
                   </a>
@@ -597,13 +599,13 @@ export default function PaymentPage() {
               )}
               {invoice.paymentMethod !== 'solana' && (
                 <div className="success-reference">
-                  <span>Method</span>
+                  <span>{t('payment.method')}</span>
                   <strong>{formatPaymentStatus(invoice.status, invoice.paymentMethod)}</strong>
                 </div>
               )}
               {isMarketplacePayment && (
                 <div className="pickup-code-panel">
-                  <span>Pickup Code</span>
+                  <span>{t('dashboard.pickupCode')}</span>
                   <strong>{marketplaceOrder?.pickupCode || '-'}</strong>
                   <small className={`badge badge-${getPickupStatusTone(marketplaceOrder?.pickupStatus)}`}>
                     {formatPickupStatus(marketplaceOrder?.pickupStatus)}
@@ -632,18 +634,18 @@ export default function PaymentPage() {
 
           {canCancelOrder && (
             <div className="alert alert-warning mt-4">
-              <span>Cancel</span>
+              <span>{t('payment.cancel')}</span>
               <div>
-                <strong>Belum ingin melanjutkan transaksi?</strong>
+                <strong>{t('payment.cancelQuestion')}</strong>
                 <p className="text-sm mt-4">
-                  Kamu bisa membatalkan order selama pembayaran belum dikonfirmasi.
+                  {t('payment.cancelSub')}
                 </p>
                 <button
                   className="btn btn-danger btn-sm mt-4"
                   onClick={cancelOrder}
                   disabled={cancellingOrder || paying || methodSubmitting}
                 >
-                  {cancellingOrder ? 'Cancelling...' : 'Cancel Order'}
+                  {cancellingOrder ? t('dashboard.cancelling') : t('dashboard.cancelOrder')}
                 </button>
               </div>
             </div>
@@ -652,7 +654,7 @@ export default function PaymentPage() {
           {invoice.txSignature && (
             <div className="alert alert-info mt-4">
               <div>
-                <strong>Transaction reference</strong>
+                <strong>{t('payment.transactionRef')}</strong>
                 <p className="text-sm mt-4">
                   TX:{' '}
                   <a
@@ -671,14 +673,14 @@ export default function PaymentPage() {
                     rel="noopener noreferrer"
                     className="btn btn-success btn-sm"
                   >
-                    View on explorer
+                    {t('payment.viewExplorer')}
                   </a>
                   <button
                     className="btn btn-outline btn-sm"
                     onClick={() => refreshTransactionStatus(true)}
                     disabled={refreshingStatus}
                   >
-                    {refreshingStatus ? 'Refreshing...' : 'Refresh status'}
+                    {refreshingStatus ? t('payment.refreshing') : t('payment.refreshStatus')}
                   </button>
                 </div>
               </div>
@@ -708,7 +710,7 @@ export default function PaymentPage() {
           {canChooseMethod && (
             <div className="pay-actions">
               <div>
-                <h2 className="method-section-title">Choose Payment Method</h2>
+                <h2 className="method-section-title">{t('payment.chooseMethod')}</h2>
                 <div className="payment-method-grid">
                   {PAYMENT_METHODS.map((method) => (
                     <button
@@ -727,14 +729,14 @@ export default function PaymentPage() {
               {selectedMethod === 'solana' && (
                 <div className="method-panel">
                   <div>
-                    <h3>On-chain payment</h3>
-                    <p className="text-secondary">Verified on Solana Devnet with a public Explorer transaction.</p>
+                    <h3>{t('payment.onChain')}</h3>
+                    <p className="text-secondary">{t('payment.onChainSub')}</p>
                   </div>
                   {!connected ? (
                     <>
                       <div className="alert alert-info">
                         <span>Wallet</span>
-                        <span>Connect your Solana wallet to pay this invoice.</span>
+                        <span>{t('payment.walletPrompt')}</span>
                       </div>
                       <button
                         className="btn btn-primary btn-full btn-lg"
@@ -743,7 +745,7 @@ export default function PaymentPage() {
                       >
                         {connecting
                           ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Connecting...</>
-                          : 'Connect Wallet to Pay'
+                          : t('payment.connectToPay')
                         }
                       </button>
                     </>
@@ -766,8 +768,8 @@ export default function PaymentPage() {
                         disabled={paying || isBlocked}
                       >
                         {paying
-                          ? <><span className="spinner" style={{ width: 18, height: 18 }} /> Sending {invoice.amount} SOL...</>
-                          : `Pay ${invoice.amount} SOL now`
+                          ? <><span className="spinner" style={{ width: 18, height: 18 }} /> {t('payment.sending', { amount: invoice.amount })}</>
+                          : t('payment.payNow', { amount: invoice.amount })
                         }
                       </button>
                       <div className="pay-secondary-actions">
@@ -775,21 +777,21 @@ export default function PaymentPage() {
                           className="btn btn-outline btn-full"
                           onClick={() => setFaucetModalOpen(true)}
                         >
-                          Need Devnet SOL? Open faucet
+                          {t('payment.needFaucet')}
                         </button>
                         <button
                           className="btn btn-ghost btn-full"
                           onClick={() => refreshTransactionStatus(true)}
                           disabled={refreshingStatus}
                         >
-                          {refreshingStatus ? 'Refreshing status...' : 'Check status manually'}
+                          {refreshingStatus ? t('payment.refreshingStatus') : t('payment.checkManual')}
                         </button>
                         <p className="pay-faucet-hint">
-                          This page auto-refreshes invoice data from Supabase and lets you re-check on-chain confirmation.
+                          {t('payment.autoRefreshHint')}
                         </p>
                       </div>
                       <p className="pay-note">
-                        Your wallet will ask for confirmation. Network: Devnet.
+                        {t('payment.walletConfirmHint')}
                       </p>
                     </>
                   )}
@@ -801,7 +803,7 @@ export default function PaymentPage() {
                   <div className="demo-payment-head">
                     <div>
                       <h3>QRIS Simulation</h3>
-                      <p className="text-secondary">Demo only - not a real QRIS transaction. Seller confirmation required.</p>
+                      <p className="text-secondary">{t('payment.qrisSub')}</p>
                     </div>
                     <span className="badge badge-purple">MVP Demo</span>
                   </div>
@@ -810,14 +812,14 @@ export default function PaymentPage() {
                       <QRCodeSVG value={qrisContent} size={188} includeMargin />
                     </div>
                     <div className="demo-instructions">
-                      <div><span>Merchant</span><strong>{merchantName}</strong></div>
-                      <div><span>SOL Amount</span><strong>{invoice.amount} SOL</strong></div>
-                      <div><span>Estimated IDR</span><strong>{formatIdr(fiatAmount)}</strong></div>
-                      <div><span>QRIS Demo Code</span><code>{qrisContent}</code></div>
+                      <div><span>{t('payment.merchant')}</span><strong>{merchantName}</strong></div>
+                      <div><span>{t('payment.solAmount')}</span><strong>{invoice.amount} SOL</strong></div>
+                      <div><span>{t('payment.estimatedIdr')}</span><strong>{formatIdr(fiatAmount)}</strong></div>
+                      <div><span>{t('payment.qrisCode')}</span><code>{qrisContent}</code></div>
                     </div>
                   </div>
                   <label className="proof-upload">
-                    <span>Optional proof image</span>
+                    <span>{t('payment.optionalProof')}</span>
                     <input type="file" accept="image/*" onChange={(event) => setProofFile(event.target.files?.[0] || null)} />
                   </label>
                   <button
@@ -825,21 +827,21 @@ export default function PaymentPage() {
                     onClick={() => submitReviewPayment('qris')}
                     disabled={methodSubmitting}
                   >
-                    {methodSubmitting ? 'Submitting...' : 'I Have Paid'}
+                    {methodSubmitting ? t('payment.submitting') : t('payment.paidButton')}
                   </button>
                 </div>
               )}
 
               {selectedMethod === 'cash_on_pickup' && (
                 <div className="method-panel">
-                  <h3>Cash on Pickup</h3>
+                  <h3>{t('payment.cashTitle')}</h3>
                   <p className="text-secondary">
-                    Your order will be reserved. Please pay the seller directly when collecting the item.
+                    {t('payment.cashSub')}
                   </p>
                   {!isMarketplacePayment && (
                     <div className="alert alert-warning">
-                      <span>Note</span>
-                      <span>Cash on Pickup works best for marketplace orders with a seller pickup flow.</span>
+                      <span>{t('payment.note')}</span>
+                      <span>{t('payment.cashNote')}</span>
                     </div>
                   )}
                   <button
@@ -847,7 +849,7 @@ export default function PaymentPage() {
                     onClick={reserveCashPayment}
                     disabled={methodSubmitting}
                   >
-                    {methodSubmitting ? 'Reserving...' : 'Reserve Order'}
+                    {methodSubmitting ? t('payment.reserving') : t('payment.reserveOrder')}
                   </button>
                 </div>
               )}
@@ -856,19 +858,19 @@ export default function PaymentPage() {
                 <div className="method-panel">
                   <div className="demo-payment-head">
                     <div>
-                      <h3>Bank Transfer Simulation</h3>
-                      <p className="text-secondary">Use demo bank transfer instructions and confirm manually.</p>
+                      <h3>{t('payment.bankTitle')}</h3>
+                      <p className="text-secondary">{t('payment.bankSub')}</p>
                     </div>
                     <span className="badge badge-cyan">Demo</span>
                   </div>
                   <div className="demo-instructions bank-demo">
-                    <div><span>Bank</span><strong>Bank Kampus Demo</strong></div>
-                    <div><span>Account Number</span><strong className="font-mono">1234567890</strong></div>
-                    <div><span>Account Name</span><strong>KampusPay Demo</strong></div>
-                    <div><span>Amount</span><strong>{formatIdr(fiatAmount)}</strong></div>
+                    <div><span>{t('payment.bank')}</span><strong>Bank Kampus Demo</strong></div>
+                    <div><span>{t('payment.accountNumber')}</span><strong className="font-mono">1234567890</strong></div>
+                    <div><span>{t('payment.accountName')}</span><strong>KampusPay Demo</strong></div>
+                    <div><span>{t('payment.amount')}</span><strong>{formatIdr(fiatAmount)}</strong></div>
                   </div>
                   <label className="proof-upload">
-                    <span>Optional proof image</span>
+                    <span>{t('payment.optionalProof')}</span>
                     <input type="file" accept="image/*" onChange={(event) => setProofFile(event.target.files?.[0] || null)} />
                   </label>
                   <button
@@ -876,7 +878,7 @@ export default function PaymentPage() {
                     onClick={() => submitReviewPayment('bank_transfer')}
                     disabled={methodSubmitting}
                   >
-                    {methodSubmitting ? 'Submitting...' : 'I Have Transferred'}
+                    {methodSubmitting ? t('payment.submitting') : t('payment.transferredButton')}
                   </button>
                 </div>
               )}
@@ -888,7 +890,7 @@ export default function PaymentPage() {
           <span>Powered by</span>
           <strong>KampusPay Lite</strong>
           <span>-</span>
-          <span>Solana Devnet and demo local payment methods</span>
+          <span>{t('payment.poweredSuffix')}</span>
         </div>
       </div>
 

@@ -10,6 +10,7 @@ import {
 } from '../utils/marketplaceStorage'
 import { buildSellerTrust, getSellerBadgeTone } from '../utils/sellerBadge'
 import { formatIdr, formatPaymentMethod, formatPaymentStatus, getPaymentStatusTone, PAID_ORDER_STATUSES } from '../utils/paymentMethods'
+import { useI18n } from '../i18n/LanguageProvider'
 import './DashboardRole.css'
 
 function downloadTextFile(filename, content, type) {
@@ -23,6 +24,7 @@ function downloadTextFile(filename, content, type) {
 }
 
 export default function SellerDashboardPage() {
+  const { t } = useI18n()
   const { profile, seller } = useAuth()
   const toast = useToast()
   const [products, setProducts] = useState([])
@@ -78,61 +80,61 @@ export default function SellerDashboardPage() {
               {profile?.avatar_url ? <img src={profile.avatar_url} alt={profile?.full_name || 'Seller'} /> : <span>{(profile?.full_name || seller?.storeName || 'S').charAt(0).toUpperCase()}</span>}
             </div>
             <div>
-              <span className="section-tag">Seller Dashboard</span>
-              <h1>{seller?.storeName || 'Seller Store'}</h1>
-              <p className="text-secondary">{seller?.walletAddress || profile?.wallet_address || 'Wallet penerima belum diisi.'}</p>
+              <span className="section-tag">{t('dashboard.sellerTag')}</span>
+              <h1>{seller?.storeName || t('dashboard.sellerStore')}</h1>
+              <p className="text-secondary">{seller?.walletAddress || profile?.wallet_address || t('dashboard.receiverWalletMissing')}</p>
             </div>
           </div>
           <div className="role-actions">
-            <button className="btn btn-outline" onClick={() => downloadTextFile('seller-orders.csv', exportOrdersAsCsv(orders), 'text/csv')}>Export CSV</button>
-            <button className="btn btn-ghost" onClick={() => downloadTextFile('seller-orders.json', exportOrdersAsJson(orders), 'application/json')}>Export JSON</button>
-            <Link to="/seller/products/create" className="btn btn-primary">Create Product</Link>
+            <button className="btn btn-outline" onClick={() => downloadTextFile('seller-orders.csv', exportOrdersAsCsv(orders), 'text/csv')}>{t('dashboard.exportCsv')}</button>
+            <button className="btn btn-ghost" onClick={() => downloadTextFile('seller-orders.json', exportOrdersAsJson(orders), 'application/json')}>{t('dashboard.exportJson')}</button>
+            <Link to="/seller/products/create" className="btn btn-primary">{t('dashboard.createProduct')}</Link>
           </div>
         </header>
 
         <div className="dashboard-grid">
-          <div className="card stat-card"><div className="stat-number">{stats.products}</div><div className="stat-label">Products</div></div>
-          <div className="card stat-card"><div className="stat-number">{stats.totalOrders}</div><div className="stat-label">Orders</div></div>
-          <div className="card stat-card"><div className="stat-number">{stats.solanaPaidOrders}</div><div className="stat-label">Solana paid</div></div>
-          <div className="card stat-card"><div className="stat-number">{stats.revenue.toFixed(3)}</div><div className="stat-label">SOL Revenue</div></div>
+          <div className="card stat-card"><div className="stat-number">{stats.products}</div><div className="stat-label">{t('nav.products')}</div></div>
+          <div className="card stat-card"><div className="stat-number">{stats.totalOrders}</div><div className="stat-label">{t('nav.orders')}</div></div>
+          <div className="card stat-card"><div className="stat-number">{stats.solanaPaidOrders}</div><div className="stat-label">{t('dashboard.solanaPaid')}</div></div>
+          <div className="card stat-card"><div className="stat-number">{stats.revenue.toFixed(3)}</div><div className="stat-label">{t('dashboard.solRevenue')}</div></div>
         </div>
 
         <div className="dashboard-grid">
-          <div className="card stat-card"><div className="stat-number">{stats.qrisDemoOrders}</div><div className="stat-label">QRIS demo paid</div></div>
-          <div className="card stat-card"><div className="stat-number">{stats.cashPendingOrders}</div><div className="stat-label">Cash pending</div></div>
-          <div className="card stat-card"><div className="stat-number">{stats.paymentReviewOrders}</div><div className="stat-label">Payment review</div></div>
-          <div className="card stat-card"><div className="stat-number">{formatIdr(stats.idrRevenue)}</div><div className="stat-label">Estimated IDR revenue</div></div>
+          <div className="card stat-card"><div className="stat-number">{stats.qrisDemoOrders}</div><div className="stat-label">{t('dashboard.qrisDemoPaid')}</div></div>
+          <div className="card stat-card"><div className="stat-number">{stats.cashPendingOrders}</div><div className="stat-label">{t('dashboard.cashPending')}</div></div>
+          <div className="card stat-card"><div className="stat-number">{stats.paymentReviewOrders}</div><div className="stat-label">{t('dashboard.paymentReview')}</div></div>
+          <div className="card stat-card"><div className="stat-number">{formatIdr(stats.idrRevenue)}</div><div className="stat-label">{t('dashboard.idrRevenue')}</div></div>
         </div>
 
         <section className="seller-badge-panel">
           <div>
-            <span className="section-tag">Seller Trust</span>
+            <span className="section-tag">{t('dashboard.sellerTrust')}</span>
             <h2>{sellerTrust.badge}</h2>
-            <p className="text-secondary">Badge dihitung dari produk aktif dan order yang sudah dibayar.</p>
+            <p className="text-secondary">{t('dashboard.badgeNote')}</p>
           </div>
           <span className={`badge badge-${getSellerBadgeTone(sellerTrust.badge)}`}>{sellerTrust.badge}</span>
           <div className="seller-badge-metrics">
-            <div><strong>{sellerTrust.activeProducts}</strong><span>Active Products</span></div>
-            <div><strong>{sellerTrust.totalOrders}</strong><span>Total Orders</span></div>
-            <div><strong>{sellerTrust.paidOrders}</strong><span>Paid Orders</span></div>
-            <div><strong>{sellerTrust.trustScore}%</strong><span>Trust Score</span></div>
+            <div><strong>{sellerTrust.activeProducts}</strong><span>{t('product.activeProducts')}</span></div>
+            <div><strong>{sellerTrust.totalOrders}</strong><span>{t('dashboard.totalOrders')}</span></div>
+            <div><strong>{sellerTrust.paidOrders}</strong><span>{t('product.paidOrders')}</span></div>
+            <div><strong>{sellerTrust.trustScore}%</strong><span>{t('product.trustScore')}</span></div>
           </div>
         </section>
 
         <section className="dashboard-section">
-          <h2 className="mb-6">Recent orders</h2>
+          <h2 className="mb-6">{t('dashboard.recentOrders')}</h2>
           {loading ? (
             <div className="card empty-state"><span className="spinner" /></div>
           ) : orders.length === 0 ? (
-            <div className="card empty-state"><h3>No orders yet</h3><p className="text-secondary">Orders will appear after students checkout.</p></div>
+            <div className="card empty-state"><h3>{t('dashboard.noOrders')}</h3><p className="text-secondary">{t('dashboard.noOrdersSub')}</p></div>
           ) : (
             <div className="table-wrap">
               <table>
-                <thead><tr><th>Product</th><th>Buyer Wallet</th><th>Total</th><th>Payment</th><th>Status</th><th>Pickup</th><th>Invoice</th></tr></thead>
+                <thead><tr><th>{t('dashboard.product')}</th><th>{t('dashboard.buyerWallet')}</th><th>{t('dashboard.total')}</th><th>{t('dashboard.payment')}</th><th>{t('dashboard.status')}</th><th>{t('dashboard.pickup')}</th><th>{t('dashboard.invoice')}</th></tr></thead>
                 <tbody>
                   {orders.slice(0, 8).map((order) => (
                     <tr key={order.id}>
-                      <td>{order.product?.name || 'Product'}</td>
+                      <td>{order.product?.name || t('dashboard.product')}</td>
                       <td className="font-mono">{order.buyerWallet || '-'}</td>
                       <td>
                         {order.totalAmount.toFixed(3)} SOL
@@ -141,7 +143,7 @@ export default function SellerDashboardPage() {
                       <td><span className="badge badge-muted">{formatPaymentMethod(order.paymentMethod)}</span></td>
                       <td><span className={`badge badge-${getPaymentStatusTone(order.status)}`}>{formatPaymentStatus(order.status, order.paymentMethod)}</span></td>
                       <td className="font-mono">{order.pickupCode || '-'}</td>
-                      <td><Link to={`/pay/${order.invoiceId}`} className="btn btn-outline btn-sm">Open</Link></td>
+                      <td><Link to={`/pay/${order.invoiceId}`} className="btn btn-outline btn-sm">{t('dashboard.open')}</Link></td>
                     </tr>
                   ))}
                 </tbody>

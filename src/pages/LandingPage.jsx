@@ -3,60 +3,73 @@ import { Link } from 'react-router-dom'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { shortenAddress } from '../hooks/useWallet'
 import WalletModal from '../components/WalletModal'
+import { useI18n } from '../i18n/LanguageProvider'
 import './LandingPage.css'
 
 const features = [
   {
-    title: 'Instant settlement proof',
-    desc: 'Every payment has a clear transaction trail on Solana Devnet, removing screenshot-based confirmation.',
+    title: { en: 'Instant settlement proof', id: 'Bukti pembayaran instan' },
+    desc: {
+      en: 'Every payment has a clear transaction trail on Solana Devnet, removing screenshot-based confirmation.',
+      id: 'Setiap pembayaran punya jejak transaksi jelas di Solana Devnet, tanpa konfirmasi berbasis screenshot.',
+    },
   },
   {
-    title: 'Shareable payment links',
-    desc: 'Generate polished invoice pages for classes, events, treasury collection, and pilot merchant flows.',
+    title: { en: 'Shareable payment links', id: 'Link pembayaran siap dibagikan' },
+    desc: {
+      en: 'Generate polished invoice pages for classes, events, treasury collection, and pilot merchant flows.',
+      id: 'Buat halaman invoice rapi untuk kelas, event, kas, dan alur uji coba merchant.',
+    },
   },
   {
-    title: 'Treasury visibility',
-    desc: 'Track paid and unpaid invoices in one calm dashboard with less friction for organizers.',
+    title: { en: 'Treasury visibility', id: 'Kas lebih mudah dipantau' },
+    desc: {
+      en: 'Track paid and unpaid invoices in one calm dashboard with less friction for organizers.',
+      id: 'Pantau invoice lunas dan belum lunas di satu dashboard yang nyaman untuk panitia.',
+    },
   },
 ]
 
 const flows = [
   {
     step: '01',
-    title: 'Create invoice',
-    desc: 'Set the title, amount, category, and receiver wallet in a lightweight form.',
+    title: { en: 'Create invoice', id: 'Buat invoice' },
+    desc: { en: 'Set the title, amount, category, and receiver wallet in a lightweight form.', id: 'Isi judul, nominal, kategori, dan wallet penerima lewat form ringan.' },
   },
   {
     step: '02',
-    title: 'Distribute link',
-    desc: 'Share one payment page as a URL or QR code for online and offline use.',
+    title: { en: 'Distribute link', id: 'Bagikan link' },
+    desc: { en: 'Share one payment page as a URL or QR code for online and offline use.', id: 'Bagikan satu halaman pembayaran sebagai URL atau QR code untuk online maupun offline.' },
   },
   {
     step: '03',
-    title: 'Collect and verify',
-    desc: 'Students connect a wallet, pay, and treasury teams verify on-chain immediately.',
+    title: { en: 'Collect and verify', id: 'Terima dan verifikasi' },
+    desc: { en: 'Students connect a wallet, pay, and treasury teams verify on-chain immediately.', id: 'Mahasiswa menghubungkan wallet, membayar, lalu tim kas bisa verifikasi on-chain saat itu juga.' },
   },
 ]
 
 const stats = [
-  { label: 'UX', value: 'Clean and smooth' },
-  { label: 'Proof', value: 'On-chain verification' },
+  { label: 'UX', value: { en: 'Clean and smooth', id: 'Rapi dan mulus' } },
+  { label: { en: 'Proof', id: 'Bukti' }, value: { en: 'On-chain verification', id: 'Verifikasi on-chain' } },
   { label: 'Mode', value: 'Solana Devnet' },
 ]
 
 const useCases = [
-  'Class contribution',
-  'Student organization dues',
-  'Ticketing and events',
-  'Donation drives',
-  'Campus merchant pilots',
-  'Temporary cashier booths',
+  { en: 'Class contribution', id: 'Iuran kelas' },
+  { en: 'Student organization dues', id: 'Iuran organisasi mahasiswa' },
+  { en: 'Ticketing and events', id: 'Tiket dan event' },
+  { en: 'Donation drives', id: 'Penggalangan donasi' },
+  { en: 'Campus merchant pilots', id: 'Uji coba merchant kampus' },
+  { en: 'Temporary cashier booths', id: 'Kasir sementara' },
 ]
 
 export default function LandingPage() {
+  const { language, t } = useI18n()
   const { publicKey, connected, connecting } = useWallet()
   const wallet = publicKey?.toString()
   const [walletModalOpen, setWalletModalOpen] = useState(false)
+
+  const text = (value) => (typeof value === 'string' ? value : value[language])
 
   return (
     <div className="landing">
@@ -71,12 +84,12 @@ export default function LandingPage() {
             <div className="hero-topbar">
               <div className="hero-badge">
                 <span className="badge-dot" />
-                Clean campus payment flow
+                {t('landing.badge')}
               </div>
               <div className="hero-mini-nav">
-                <span>Invoices</span>
-                <span>Collections</span>
-                <span>Devnet</span>
+                <span>{t('landing.heroNav.invoices')}</span>
+                <span>{t('landing.heroNav.collections')}</span>
+                <span>{t('landing.heroNav.devnet')}</span>
               </div>
             </div>
 
@@ -84,40 +97,37 @@ export default function LandingPage() {
               <div className="hero-copy">
                 <p className="hero-kicker">KampusPay Lite</p>
                 <h1 className="hero-title">
-                  Real-time
-                  <br />
-                  payments for
-                  <br />
-                  campus teams
+                  {t('landing.title').split('\n').map((line) => (
+                    <span key={line}>{line}<br /></span>
+                  ))}
                 </h1>
                 <p className="hero-subtitle">
-                  A cleaner way to create payment links, collect Devnet SOL, and
-                  verify each transfer in a more professional interface.
+                  {t('landing.subtitle')}
                 </p>
 
                 <div className="hero-cta">
                   <Link to="/create" className="btn btn-primary btn-lg">
-                    Create invoice
+                    {t('landing.createInvoice')}
                   </Link>
                   <Link to="/dashboard" className="btn btn-outline btn-lg">
-                    Open dashboard
+                    {t('landing.openDashboard')}
                   </Link>
                 </div>
 
                 {connected ? (
                   <div className="hero-wallet-status">
                     <span className="wallet-dot-green" />
-                    Connected as {shortenAddress(wallet)}
+                    {t('landing.connectedAs', { wallet: shortenAddress(wallet) })}
                   </div>
                 ) : (
                   <div className="hero-wallet-hint">
-                    <span>Wallet ready:</span>
+                    <span>{t('landing.walletReady')}</span>
                     <button
                       className="link-btn"
                       onClick={() => setWalletModalOpen(true)}
                       disabled={connecting}
                     >
-                      {connecting ? 'Connecting...' : 'Connect your Solana wallet'}
+                      {connecting ? t('landing.connecting') : t('landing.connectWallet')}
                     </button>
                   </div>
                 )}
@@ -132,11 +142,10 @@ export default function LandingPage() {
 
                 <div className="hero-side-note">
                   <p>
-                    Receive and verify payments instantly with a softer visual
-                    flow built for student finance operations.
+                    {t('landing.sideNote')}
                   </p>
                   <Link to="/create" className="hero-join-link">
-                    Start now
+                    {t('landing.startNow')}
                   </Link>
                 </div>
               </div>
@@ -144,9 +153,9 @@ export default function LandingPage() {
 
             <div className="hero-stats">
               {stats.map((item) => (
-                <div className="hero-stat" key={item.label}>
-                  <span className="hero-stat-label">{item.label}</span>
-                  <strong>{item.value}</strong>
+                <div className="hero-stat" key={text(item.label)}>
+                  <span className="hero-stat-label">{text(item.label)}</span>
+                  <strong>{text(item.value)}</strong>
                 </div>
               ))}
             </div>
@@ -157,15 +166,15 @@ export default function LandingPage() {
       <section className="section section-soft">
         <div className="container">
           <div className="section-header section-header-left">
-            <div className="section-tag">Why it feels better</div>
-            <h2 className="section-title">Professional by default, simple for daily use</h2>
+            <div className="section-tag">{t('landing.whyTag')}</div>
+            <h2 className="section-title">{t('landing.whyTitle')}</h2>
           </div>
           <div className="feature-grid">
             {features.map((feature) => (
               <article className="card feature-card" key={feature.title}>
                 <div className="feature-index" />
-                <h3 className="feature-title">{feature.title}</h3>
-                <p className="feature-desc">{feature.desc}</p>
+                <h3 className="feature-title">{text(feature.title)}</h3>
+                <p className="feature-desc">{text(feature.desc)}</p>
               </article>
             ))}
           </div>
@@ -176,15 +185,15 @@ export default function LandingPage() {
         <div className="container">
           <div className="showcase-grid">
             <div className="card showcase-card showcase-primary">
-              <div className="section-tag">Workflow</div>
-              <h2 className="section-title">One calm flow from invoice to confirmation</h2>
+              <div className="section-tag">{t('landing.workflowTag')}</div>
+              <h2 className="section-title">{t('landing.workflowTitle')}</h2>
               <div className="flow-list">
                 {flows.map((flow) => (
                   <div className="flow-item" key={flow.step}>
                     <div className="flow-step">{flow.step}</div>
                     <div>
-                      <h3>{flow.title}</h3>
-                      <p>{flow.desc}</p>
+                      <h3>{text(flow.title)}</h3>
+                      <p>{text(flow.desc)}</p>
                     </div>
                   </div>
                 ))}
@@ -192,18 +201,17 @@ export default function LandingPage() {
             </div>
 
             <div className="card showcase-card showcase-secondary">
-              <div className="section-tag">Use cases</div>
-              <h2 className="section-title">Built for campus operations</h2>
+              <div className="section-tag">{t('landing.useCasesTag')}</div>
+              <h2 className="section-title">{t('landing.useCasesTitle')}</h2>
               <div className="usecase-list">
                 {useCases.map((item) => (
-                  <div className="usecase-pill" key={item}>
-                    {item}
+                  <div className="usecase-pill" key={text(item)}>
+                    {text(item)}
                   </div>
                 ))}
               </div>
               <p className="showcase-note">
-                Suitable for payment pilots, internal demos, and blockchain-backed
-                collection experiments in campus environments.
+                {t('landing.useCasesNote')}
               </p>
             </div>
           </div>
@@ -214,19 +222,18 @@ export default function LandingPage() {
         <div className="container">
           <div className="cta-panel">
             <div>
-              <div className="section-tag">Ready</div>
-              <h2 className="cta-title">Launch a smoother payment page in minutes</h2>
+              <div className="section-tag">{t('landing.readyTag')}</div>
+              <h2 className="cta-title">{t('landing.ctaTitle')}</h2>
               <p className="cta-sub">
-                Create your first invoice, test with Devnet SOL, and share a more
-                polished experience with your team.
+                {t('landing.ctaSub')}
               </p>
             </div>
             <div className="cta-actions">
               <Link to="/create" className="btn btn-primary btn-lg">
-                Create your first invoice
+                {t('landing.firstInvoice')}
               </Link>
               <button className="btn btn-ghost btn-lg" onClick={() => setWalletModalOpen(true)}>
-                Connect wallet
+                {t('landing.connectWalletShort')}
               </button>
             </div>
           </div>

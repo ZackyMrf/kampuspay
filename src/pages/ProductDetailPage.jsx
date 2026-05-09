@@ -5,9 +5,11 @@ import { useAuth } from '../components/authContext'
 import { useToast } from '../components/toastContext'
 import { createProductCheckout, getProductById } from '../utils/marketplaceStorage'
 import { getSellerBadgeTone } from '../utils/sellerBadge'
+import { useI18n } from '../i18n/LanguageProvider'
 import './MarketplacePage.css'
 
 export default function ProductDetailPage() {
+  const { t } = useI18n()
   const { productId } = useParams()
   const navigate = useNavigate()
   const toast = useToast()
@@ -67,8 +69,8 @@ export default function ProductDetailPage() {
   if (!product) {
     return (
       <div className="page flex-center flex-col gap-4">
-        <h2>Product not found</h2>
-        <Link to="/marketplace" className="btn btn-primary">Back to Marketplace</Link>
+        <h2>{t('product.notFound')}</h2>
+        <Link to="/marketplace" className="btn btn-primary">{t('product.backMarketplace')}</Link>
       </div>
     )
   }
@@ -79,7 +81,7 @@ export default function ProductDetailPage() {
   return (
     <div className="page">
       <div className="container">
-        <Link to="/marketplace" className="back-link">Back to marketplace</Link>
+        <Link to="/marketplace" className="back-link">{t('product.backToMarketplace')}</Link>
         <div className="card product-detail-card">
           <div className="product-image-wrap product-detail-image">
             {product.imageUrl ? <img src={product.imageUrl} alt={product.name} /> : <div className="product-image-fallback">{product.category}</div>}
@@ -87,33 +89,33 @@ export default function ProductDetailPage() {
           <div>
             <span className="market-category">{product.category}</span>
             <h1 className="market-section-title">{product.name}</h1>
-            <p className="text-secondary">{product.description || 'Campus marketplace product.'}</p>
+            <p className="text-secondary">{product.description || t('market.defaultProduct')}</p>
             <div className="divider" />
             <div className="invoice-details">
-              <div className="detail-row"><span className="detail-label">Seller</span><strong>{product.seller?.storeName || 'Campus Seller'}</strong></div>
-              <div className="detail-row"><span className="detail-label">Price</span><strong>{Number(product.priceSol).toFixed(3)} SOL</strong></div>
-              <div className="detail-row"><span className="detail-label">Stock</span><span>{product.stock}</span></div>
+              <div className="detail-row"><span className="detail-label">{t('product.seller')}</span><strong>{product.seller?.storeName || t('market.campusSeller')}</strong></div>
+              <div className="detail-row"><span className="detail-label">{t('product.price')}</span><strong>{Number(product.priceSol).toFixed(3)} SOL</strong></div>
+              <div className="detail-row"><span className="detail-label">{t('product.stock')}</span><span>{product.stock}</span></div>
             </div>
             <div className="seller-trust-card mt-6">
               <div>
-                <span className="detail-label">Seller Trust</span>
-                <h2>{product.seller?.storeName || 'Campus Seller'}</h2>
+                <span className="detail-label">{t('product.sellerTrust')}</span>
+                <h2>{product.seller?.storeName || t('market.campusSeller')}</h2>
               </div>
               <span className={`badge badge-${getSellerBadgeTone(sellerTrust?.badge)}`}>
-                {sellerTrust?.badge || 'New Seller'}
+                {sellerTrust?.badge || t('market.newSeller')}
               </span>
               <div className="seller-trust-grid">
-                <div><strong>{sellerTrust?.paidOrders || 0}</strong><span>Paid Orders</span></div>
-                <div><strong>{sellerTrust?.trustScore || 0}%</strong><span>Trust Score</span></div>
-                <div><strong>{sellerTrust?.activeProducts || 0}</strong><span>Active Products</span></div>
+                <div><strong>{sellerTrust?.paidOrders || 0}</strong><span>{t('product.paidOrders')}</span></div>
+                <div><strong>{sellerTrust?.trustScore || 0}%</strong><span>{t('product.trustScore')}</span></div>
+                <div><strong>{sellerTrust?.activeProducts || 0}</strong><span>{t('product.activeProducts')}</span></div>
               </div>
             </div>
             <div className="form-group mt-6">
-              <label className="form-label">Quantity</label>
+              <label className="form-label">{t('product.quantity')}</label>
               <input className="form-input" type="number" min="1" max={maxQty} value={quantity} onChange={(event) => setQuantity(Math.min(maxQty, Math.max(1, Number(event.target.value))))} />
             </div>
             <button className="btn btn-primary btn-lg btn-full" onClick={handleBuy} disabled={checkingOut || product.stock <= 0}>
-              {checkingOut ? 'Creating invoice...' : `Buy Now - ${(product.priceSol * quantity).toFixed(3)} SOL`}
+              {checkingOut ? t('product.creatingInvoice') : t('product.buyNowAmount', { amount: (product.priceSol * quantity).toFixed(3) })}
             </button>
           </div>
         </div>

@@ -10,9 +10,11 @@ import { getCurrentTimestamp } from '../utils/time'
 import { shortenAddress } from '../hooks/useWallet'
 import { useToast } from '../components/toastContext'
 import WalletModal from '../components/WalletModal'
+import { useI18n } from '../i18n/LanguageProvider'
 import './CreateInvoicePage.css'
 
 export default function CreateInvoicePage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { publicKey, connected } = useWallet()
@@ -124,32 +126,32 @@ export default function CreateInvoicePage() {
           <div className="card success-invoice-card">
             <div className="success-header">
               <div className="success-icon">+</div>
-              <h2>Invoice Created</h2>
-              <p className="text-secondary">Share the link or QR code below with your students.</p>
+              <h2>{t('invoice.created')}</h2>
+              <p className="text-secondary">{t('invoice.createdSub')}</p>
             </div>
 
             <div className="invoice-summary">
-              <div className="summary-row"><span>Title</span><strong>{createdInvoice.title}</strong></div>
-              <div className="summary-row"><span>Amount</span><strong className="text-accent">{createdInvoice.amount} SOL</strong></div>
-              <div className="summary-row"><span>Invoice ID</span><code className="font-mono">{createdInvoice.id}</code></div>
-              <div className="summary-row"><span>Category</span><span>{createdInvoice.category}</span></div>
-              <div className="summary-row"><span>Deadline</span><span>{formatDeadline(createdInvoice.expiresAt)}</span></div>
+              <div className="summary-row"><span>{t('invoice.title').replace(' *', '')}</span><strong>{createdInvoice.title}</strong></div>
+              <div className="summary-row"><span>{t('invoice.amountLabel')}</span><strong className="text-accent">{createdInvoice.amount} SOL</strong></div>
+              <div className="summary-row"><span>{t('invoice.invoiceId')}</span><code className="font-mono">{createdInvoice.id}</code></div>
+              <div className="summary-row"><span>{t('invoice.category').replace(' *', '')}</span><span>{createdInvoice.category}</span></div>
+              <div className="summary-row"><span>{t('invoice.deadline')}</span><span>{formatDeadline(createdInvoice.expiresAt)}</span></div>
             </div>
 
             <div className="divider" />
 
             <div className="link-section">
-              <label className="form-label">Payment Link</label>
+              <label className="form-label">{t('invoice.paymentLink')}</label>
               <div className="link-copy-row">
                 <input className="form-input" value={paymentUrl} readOnly />
                 <button className="btn btn-primary btn-sm" onClick={copyLink}>
-                  {copied ? 'Copied' : 'Copy'}
+                  {copied ? t('invoice.copied') : t('invoice.copy')}
                 </button>
               </div>
             </div>
 
             <div className="qr-section">
-              <label className="form-label">QR Code</label>
+              <label className="form-label">{t('invoice.qrCode')}</label>
               <div className="qr-wrapper">
                 <QRCodeCanvas
                   value={paymentUrl}
@@ -160,20 +162,20 @@ export default function CreateInvoicePage() {
                   includeMargin
                 />
               </div>
-              <p className="text-sm text-muted text-center">Scan with any camera to open the payment page.</p>
+              <p className="text-sm text-muted text-center">{t('invoice.scanHint')}</p>
             </div>
 
             <div className="divider" />
 
             <div className="success-actions">
               <button className="btn btn-outline btn-full" onClick={() => setCreatedInvoice(null)}>
-                Create another
+                {t('invoice.createAnother')}
               </button>
               <button className="btn btn-ghost btn-full" onClick={() => navigate('/admin')}>
-                Go to admin dashboard
+                {t('invoice.adminDashboard')}
               </button>
               <button className="btn btn-primary btn-full" onClick={() => navigate(`/pay/${createdInvoice.id}`)}>
-                View payment page
+                {t('invoice.viewPayment')}
               </button>
             </div>
           </div>
@@ -186,17 +188,17 @@ export default function CreateInvoicePage() {
     <div className="page">
       <div className="container" style={{ maxWidth: 840 }}>
         <div className="page-header">
-          <h1 className="page-title">Create Invoice</h1>
-          <p className="page-sub">Generate a cleaner payment flow with deadline, receiver verification, and payer metadata.</p>
+          <h1 className="page-title">{t('invoice.createTitle')}</h1>
+          <p className="page-sub">{t('invoice.createSub')}</p>
         </div>
 
         {!connected && (
           <div className="alert alert-info mb-6">
-            <span>Info</span>
+            <span>{t('invoice.info')}</span>
             <span>
-              Connect your Solana wallet to auto-fill the receiver address.{' '}
+              {t('invoice.connectInfo')}{' '}
               <button className="link-btn" onClick={() => setWalletModalOpen(true)}>
-                Connect now
+                {t('invoice.connectNow')}
               </button>
             </span>
           </div>
@@ -205,11 +207,11 @@ export default function CreateInvoicePage() {
         <div className="card">
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label className="form-label">Invoice Title *</label>
+              <label className="form-label">{t('invoice.title')}</label>
               <input
                 className="form-input"
                 name="title"
-                placeholder="e.g. Iuran Kelas Basis Data"
+                placeholder={t('invoice.titlePlaceholder')}
                 value={form.title}
                 onChange={handleChange}
                 maxLength={100}
@@ -218,11 +220,11 @@ export default function CreateInvoicePage() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Description</label>
+              <label className="form-label">{t('invoice.description')}</label>
               <textarea
                 className="form-textarea"
                 name="description"
-                placeholder="Optional: payment context, deadline note, or collection detail."
+                placeholder={t('invoice.descriptionPlaceholder')}
                 value={form.description}
                 onChange={handleChange}
                 rows={3}
@@ -231,7 +233,7 @@ export default function CreateInvoicePage() {
 
             <div className="grid-2">
               <div className="form-group">
-                <label className="form-label">Amount (SOL) *</label>
+                <label className="form-label">{t('invoice.amount')}</label>
                 <input
                   className="form-input"
                   name="amount"
@@ -246,7 +248,7 @@ export default function CreateInvoicePage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Category *</label>
+                <label className="form-label">{t('invoice.category')}</label>
                 <select
                   className="form-select"
                   name="category"
@@ -265,19 +267,19 @@ export default function CreateInvoicePage() {
             <div className="grid-2">
               <div className="form-group">
                 <div className="label-row">
-                  <label className="form-label">Receiver Wallet Address *</label>
+                  <label className="form-label">{t('invoice.receiver')}</label>
                   <button
                     type="button"
                     className="btn btn-ghost btn-sm"
                     onClick={() => connected ? setForm((prev) => ({ ...prev, receiver: wallet })) : setWalletModalOpen(true)}
                   >
-                    {connected ? 'Use my wallet' : 'Connect wallet'}
+                    {connected ? t('invoice.useMyWallet') : t('landing.connectWalletShort')}
                   </button>
                 </div>
                 <input
                   className="form-input"
                   name="receiver"
-                  placeholder="Solana public key"
+                  placeholder={t('invoice.receiverPlaceholder')}
                   value={form.receiver}
                   onChange={handleChange}
                   style={{ fontFamily: 'monospace', fontSize: '0.82rem' }}
@@ -285,10 +287,10 @@ export default function CreateInvoicePage() {
                 {errors.receiver && <span className="form-error">{errors.receiver}</span>}
                 {receiverAddress && (
                   <div className={`receiver-preview ${receiverIsValid ? 'valid' : 'invalid'}`}>
-                    <span>{receiverIsValid ? `Verified wallet: ${shortenAddress(receiverAddress)}` : 'Address format is not valid yet'}</span>
+                    <span>{receiverIsValid ? t('invoice.verifiedWallet', { wallet: shortenAddress(receiverAddress) }) : t('invoice.invalidAddress')}</span>
                     {receiverIsValid && (
                       <a href={getAddressExplorerUrl(receiverAddress)} target="_blank" rel="noopener noreferrer">
-                        Open in explorer
+                        {t('invoice.openExplorer')}
                       </a>
                     )}
                   </div>
@@ -296,7 +298,7 @@ export default function CreateInvoicePage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Deadline</label>
+                <label className="form-label">{t('invoice.deadline')}</label>
                 <input
                   className="form-input"
                   name="expiresAt"
@@ -305,24 +307,24 @@ export default function CreateInvoicePage() {
                   onChange={handleChange}
                 />
                 {errors.expiresAt && <span className="form-error">{errors.expiresAt}</span>}
-                <span className="form-hint">Optional. Expired invoices can no longer be paid.</span>
+                <span className="form-hint">{t('invoice.deadlineHint')}</span>
               </div>
             </div>
 
             <div className="grid-2">
               <div className="form-group">
-                <label className="form-label">Payer Name</label>
+                <label className="form-label">{t('invoice.payerName')}</label>
                 <input
                   className="form-input"
                   name="payerName"
-                  placeholder="e.g. Nama mahasiswa"
+                  placeholder={t('invoice.payerNamePlaceholder')}
                   value={form.payerName}
                   onChange={handleChange}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Payer ID / NIM</label>
+                <label className="form-label">{t('invoice.payerId')}</label>
                 <input
                   className="form-input"
                   name="payerId"
@@ -334,11 +336,11 @@ export default function CreateInvoicePage() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Internal Notes</label>
+              <label className="form-label">{t('invoice.notes')}</label>
               <textarea
                 className="form-textarea"
                 name="notes"
-                placeholder="Optional note for treasurer or event team."
+                placeholder={t('invoice.notesPlaceholder')}
                 value={form.notes}
                 onChange={handleChange}
                 rows={3}
@@ -351,7 +353,7 @@ export default function CreateInvoicePage() {
               style={{ marginTop: 8 }}
               disabled={saving}
             >
-              {saving ? 'Saving invoice...' : 'Generate invoice and payment link'}
+              {saving ? t('invoice.saving') : t('invoice.generate')}
             </button>
           </form>
         </div>

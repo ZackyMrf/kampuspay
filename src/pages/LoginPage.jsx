@@ -6,9 +6,11 @@ import { useToast } from '../components/toastContext'
 import WalletModal from '../components/WalletModal'
 import { shortenAddress } from '../hooks/useWallet'
 import { getProfileByWalletAddress } from '../utils/profileStorage'
+import { useI18n } from '../i18n/LanguageProvider'
 import './AuthPages.css'
 
 export default function LoginPage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const toast = useToast()
   const { login } = useAuth()
@@ -88,14 +90,14 @@ export default function LoginPage() {
     <div className="page">
       <div className="container auth-shell">
         <section className="auth-copy">
-          <span className="section-tag">KampusPay Account</span>
-          <h1>Masuk untuk membeli atau mengelola lapak kampus.</h1>
-          <p>Connect wallet untuk mengambil email akun yang terhubung, lalu login dengan password akun tersebut.</p>
+          <span className="section-tag">{t('auth.loginTag')}</span>
+          <h1>{t('auth.loginTitle')}</h1>
+          <p>{t('auth.loginSub')}</p>
         </section>
 
         <form className="card auth-card" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Wallet Linked Account</label>
+            <label className="form-label">{t('auth.walletLinkedAccount')}</label>
             <div className={`auth-wallet-panel ${connectedWallet ? 'connected' : ''}`}>
               <div className="auth-wallet-main">
                 {wallet?.adapter?.icon && (
@@ -107,16 +109,16 @@ export default function LoginPage() {
                 )}
                 <div>
                   <div className="auth-wallet-title">
-                    {connectedWallet ? shortenAddress(connectedWallet) : 'Connect Wallet'}
+                    {connectedWallet ? shortenAddress(connectedWallet) : t('wallet.connect')}
                   </div>
                   <div className="auth-wallet-address">
                     {walletLookupLoading
-                      ? 'Mencari akun dari wallet...'
+                      ? t('auth.searchingWallet')
                       : walletProfile?.email
-                        ? `Terhubung ke ${walletProfile.email}`
+                        ? t('auth.walletLinkedTo', { email: walletProfile.email })
                         : connectedWallet
-                          ? 'Wallet belum terhubung ke akun.'
-                          : 'Cari email akun dari wallet yang terdaftar.'}
+                          ? t('auth.walletNotLinked')
+                          : t('auth.findWalletAccount')}
                   </div>
                 </div>
               </div>
@@ -127,14 +129,14 @@ export default function LoginPage() {
                   onClick={() => setWalletModalOpen(true)}
                   disabled={connecting || walletLookupLoading}
                 >
-                  {connectedWallet ? 'Change' : 'Connect'}
+                  {connectedWallet ? t('wallet.change') : t('wallet.connectShort')}
                 </button>
               </div>
             </div>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Email</label>
+            <label className="form-label">{t('auth.email')}</label>
             <input
               className="form-input"
               type="email"
@@ -144,7 +146,7 @@ export default function LoginPage() {
             />
           </div>
           <div className="form-group">
-            <label className="form-label">Password</label>
+            <label className="form-label">{t('auth.password')}</label>
             <input
               className="form-input"
               type="password"
@@ -157,11 +159,11 @@ export default function LoginPage() {
           {error && <div className="alert alert-error mb-6">{error}</div>}
 
           <button className="btn btn-primary btn-full btn-lg" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? t('auth.loggingIn') : t('auth.loginButton')}
           </button>
           <div className="auth-switch">
-            <span>Belum punya akun?</span>
-            <Link to="/register">Register</Link>
+            <span>{t('auth.noAccount')}</span>
+            <Link to="/register">{t('auth.registerButton')}</Link>
           </div>
         </form>
       </div>

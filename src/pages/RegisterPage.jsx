@@ -5,9 +5,11 @@ import { useAuth } from '../components/authContext'
 import { useToast } from '../components/toastContext'
 import WalletModal from '../components/WalletModal'
 import { shortenAddress } from '../hooks/useWallet'
+import { useI18n } from '../i18n/LanguageProvider'
 import './AuthPages.css'
 
 export default function RegisterPage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const toast = useToast()
   const { publicKey, wallet, disconnect } = useWallet()
@@ -72,39 +74,39 @@ export default function RegisterPage() {
     <div className="page">
       <div className="container auth-shell">
         <section className="auth-copy">
-          <span className="section-tag">Create Account</span>
-          <h1>Buat akun student atau seller untuk marketplace kampus.</h1>
-          <p>Connect wallet saat register supaya alamat wallet tersimpan di akun dan bisa ikut reconnect saat login berikutnya.</p>
+          <span className="section-tag">{t('auth.registerTag')}</span>
+          <h1>{t('auth.registerTitle')}</h1>
+          <p>{t('auth.registerSub')}</p>
         </section>
 
         <form className="card auth-card" onSubmit={handleSubmit}>
           <div className="grid-2">
             <div className="form-group">
-              <label className="form-label">Full Name</label>
+              <label className="form-label">{t('auth.fullName')}</label>
               <input className="form-input" name="fullName" value={form.fullName} onChange={handleChange} required />
             </div>
             <div className="form-group">
-              <label className="form-label">Role</label>
+              <label className="form-label">{t('auth.role')}</label>
               <select className="form-select" name="role" value={form.role} onChange={handleChange}>
-                <option value="student">Student</option>
-                <option value="seller">Seller</option>
+                <option value="student">{t('auth.student')}</option>
+                <option value="seller">{t('auth.seller')}</option>
               </select>
             </div>
           </div>
 
           <div className="grid-2">
             <div className="form-group">
-              <label className="form-label">Email</label>
+              <label className="form-label">{t('auth.email')}</label>
               <input className="form-input" type="email" name="email" value={form.email} onChange={handleChange} required />
             </div>
             <div className="form-group">
-              <label className="form-label">Password</label>
+              <label className="form-label">{t('auth.password')}</label>
               <input className="form-input" type="password" name="password" value={form.password} onChange={handleChange} minLength={6} required />
             </div>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Wallet</label>
+            <label className="form-label">{t('auth.wallet')}</label>
             <div className={`auth-wallet-panel ${connectedWallet ? 'connected' : ''}`}>
               <div className="auth-wallet-main">
                 {wallet?.adapter?.icon && (
@@ -116,10 +118,10 @@ export default function RegisterPage() {
                 )}
                 <div>
                   <div className="auth-wallet-title">
-                    {connectedWallet ? wallet?.adapter?.name || 'Wallet Connected' : 'Connect Wallet'}
+                    {connectedWallet ? wallet?.adapter?.name || t('auth.walletConnected') : t('wallet.connect')}
                   </div>
                   <div className="auth-wallet-address">
-                    {connectedWallet ? shortenAddress(connectedWallet) : 'Wallet akan dipakai sebagai alamat akun.'}
+                    {connectedWallet ? shortenAddress(connectedWallet) : t('auth.walletRegisterHint')}
                   </div>
                 </div>
               </div>
@@ -129,7 +131,7 @@ export default function RegisterPage() {
                   className="btn btn-outline btn-sm"
                   onClick={() => setWalletModalOpen(true)}
                 >
-                  {connectedWallet ? 'Change' : 'Connect'}
+                  {connectedWallet ? t('wallet.change') : t('wallet.connectShort')}
                 </button>
                 {connectedWallet && (
                   <button
@@ -137,7 +139,7 @@ export default function RegisterPage() {
                     className="btn btn-ghost btn-sm"
                     onClick={() => disconnect()}
                   >
-                    Disconnect
+                    {t('wallet.disconnect')}
                   </button>
                 )}
               </div>
@@ -148,11 +150,11 @@ export default function RegisterPage() {
             <div className="seller-fields">
               <div className="grid-2">
                 <div className="form-group">
-                  <label className="form-label">Store Name</label>
+                  <label className="form-label">{t('auth.storeName')}</label>
                   <input className="form-input" name="storeName" value={form.storeName} onChange={handleChange} placeholder="Kantin Teknik" />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Store Category</label>
+                  <label className="form-label">{t('auth.storeCategory')}</label>
                   <select className="form-select" name="storeCategory" value={form.storeCategory} onChange={handleChange}>
                     <option>Food</option>
                     <option>Drink</option>
@@ -165,13 +167,13 @@ export default function RegisterPage() {
                 </div>
               </div>
               <div className="form-group">
-                <label className="form-label">Seller Wallet</label>
+                <label className="form-label">{t('auth.sellerWallet')}</label>
                 <div className="auth-wallet-note">
-                  Pembayaran toko akan masuk ke wallet yang terkoneksi saat register.
+                  {t('auth.sellerWalletNote')}
                 </div>
               </div>
               <div className="form-group">
-                <label className="form-label">Store Description</label>
+                <label className="form-label">{t('auth.storeDescription')}</label>
                 <textarea className="form-textarea" name="storeDescription" value={form.storeDescription} onChange={handleChange} rows={3} />
               </div>
             </div>
@@ -180,11 +182,11 @@ export default function RegisterPage() {
           {error && <div className="alert alert-error mb-6">{error}</div>}
 
           <button className="btn btn-primary btn-full btn-lg" disabled={loading}>
-            {loading ? 'Creating account...' : 'Register'}
+            {loading ? t('auth.creatingAccount') : t('auth.registerButton')}
           </button>
           <div className="auth-switch">
-            <span>Sudah punya akun?</span>
-            <Link to="/login">Login</Link>
+            <span>{t('auth.haveAccount')}</span>
+            <Link to="/login">{t('auth.loginButton')}</Link>
           </div>
         </form>
       </div>

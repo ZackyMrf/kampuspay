@@ -9,9 +9,11 @@ import {
   MARKETPLACE_CATEGORIES,
 } from '../utils/marketplaceStorage'
 import { getSellerBadgeTone } from '../utils/sellerBadge'
+import { useI18n } from '../i18n/LanguageProvider'
 import './MarketplacePage.css'
 
 export default function MarketplacePage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const toast = useToast()
   const { publicKey, connected } = useWallet()
@@ -80,16 +82,16 @@ export default function MarketplacePage() {
       <div className="container">
         <div className="market-hero">
           <div>
-            <span className="section-tag">Campus Marketplace</span>
-            <h1 className="market-title">Lapak kampus untuk makanan, event, merch, jasa, dan donasi.</h1>
+            <span className="section-tag">{t('market.tag')}</span>
+            <h1 className="market-title">{t('market.title')}</h1>
             <p className="market-sub">
-              Browse produk seller kampus, buat invoice otomatis, dan bayar menggunakan Solana Devnet.
+              {t('market.sub')}
             </p>
           </div>
           <div className="market-summary">
-            <div className="market-summary-card"><span>Active products</span><strong>{products.length}</strong></div>
-            <div className="market-summary-card"><span>Categories</span><strong>{MARKETPLACE_CATEGORIES.length}</strong></div>
-            <div className="market-summary-card"><span>Network</span><strong>Devnet</strong></div>
+            <div className="market-summary-card"><span>{t('market.activeProducts')}</span><strong>{products.length}</strong></div>
+            <div className="market-summary-card"><span>{t('market.categories')}</span><strong>{MARKETPLACE_CATEGORIES.length}</strong></div>
+            <div className="market-summary-card"><span>{t('market.network')}</span><strong>Devnet</strong></div>
           </div>
         </div>
 
@@ -100,7 +102,7 @@ export default function MarketplacePage() {
               className={`btn btn-sm ${category === item ? 'btn-primary' : 'btn-outline'}`}
               onClick={() => setCategory(item)}
             >
-              {item}
+              {item === 'All' ? t('market.all') : item}
             </button>
           ))}
         </div>
@@ -108,14 +110,14 @@ export default function MarketplacePage() {
         {loading ? (
           <div className="empty-state card">
             <div className="spinner" />
-            <h3>Loading marketplace</h3>
-            <p className="text-secondary">Fetching active products from Supabase.</p>
+            <h3>{t('market.loadingTitle')}</h3>
+            <p className="text-secondary">{t('market.loadingSub')}</p>
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="empty-state card">
             <div className="empty-icon">0</div>
-            <h3>No active products</h3>
-            <p className="text-secondary">Try another category or ask sellers to add products.</p>
+            <h3>{t('market.emptyTitle')}</h3>
+            <p className="text-secondary">{t('market.emptySub')}</p>
           </div>
         ) : (
           <div className="market-grid">
@@ -130,26 +132,26 @@ export default function MarketplacePage() {
                 </div>
                 <div className="market-card-top">
                   <span className="market-category">{product.category}</span>
-                  <span className="market-featured">{product.stock} stock</span>
+                  <span className="market-featured">{t('market.stock', { count: product.stock })}</span>
                 </div>
                 <h2>{product.name}</h2>
-                <p>{product.description || 'Campus marketplace product.'}</p>
+                <p>{product.description || t('market.defaultProduct')}</p>
                 <div className="market-meta">
                   <div className="market-seller-trust">
-                    <strong>{product.seller?.storeName || 'Campus Seller'}</strong>
+                    <strong>{product.seller?.storeName || t('market.campusSeller')}</strong>
                     <span className={`badge badge-${getSellerBadgeTone(product.seller?.trust?.badge)}`}>
-                      {product.seller?.trust?.badge || 'New Seller'}
+                      {product.seller?.trust?.badge || t('market.newSeller')}
                     </span>
-                    <small>Trust Score: {product.seller?.trust?.trustScore || 0}%</small>
+                    <small>{t('market.trustScore', { score: product.seller?.trust?.trustScore || 0 })}</small>
                   </div>
                   <span>{Number(product.priceSol).toFixed(3)} SOL</span>
                 </div>
                 <div className="market-card-bottom">
                   <strong>{Number(product.priceSol).toFixed(3)} SOL</strong>
                   <div className="market-actions-inline">
-                    <Link className="btn btn-outline btn-sm" to={`/product/${product.id}`}>View detail</Link>
+                    <Link className="btn btn-outline btn-sm" to={`/product/${product.id}`}>{t('market.viewDetail')}</Link>
                     <button className="btn btn-primary btn-sm" onClick={() => buyNow(product)} disabled={buyingId === product.id}>
-                      {buyingId === product.id ? 'Creating...' : 'Buy now'}
+                      {buyingId === product.id ? t('market.creating') : t('market.buyNow')}
                     </button>
                   </div>
                 </div>

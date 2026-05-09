@@ -16,6 +16,7 @@ import SellerProductsPage from './pages/SellerProductsPage'
 import CreateProductPage from './pages/CreateProductPage'
 import SellerOrdersPage from './pages/SellerOrdersPage'
 import ProfileSettingsPage from './pages/ProfileSettingsPage'
+import { useI18n } from './i18n/LanguageProvider'
 import './App.css'
 
 function PaymentRoute() {
@@ -58,6 +59,8 @@ function AuthGuard({ children }) {
 }
 
 export default function App() {
+  const { t } = useI18n()
+
   return (
     <BrowserRouter>
       <div className="app-wrapper">
@@ -90,9 +93,9 @@ export default function App() {
                 KampusPay<span style={{ color: 'var(--text-muted)' }}>Lite</span>
               </span>
               <span className="footer-sep">|</span>
-              <span className="text-muted text-sm">On-Chain Payment Links for Campus Life</span>
+              <span className="text-muted text-sm">{t('footer.tagline')}</span>
               <span className="footer-sep">|</span>
-              <span className="text-muted text-sm">Solana Devnet</span>
+              <span className="text-muted text-sm">{t('footer.network')}</span>
             </div>
           </div>
         </footer>

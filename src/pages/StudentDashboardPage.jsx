@@ -8,9 +8,11 @@ import { cancelOrderByInvoice, getStudentOrders } from '../utils/marketplaceStor
 import { getExplorerUrl } from '../utils/solana'
 import { formatPickupStatus, getPickupStatusTone } from '../utils/pickupCode'
 import { CANCELLABLE_ORDER_STATUSES, formatIdr, formatPaymentMethod, formatPaymentStatus, getPaymentStatusTone, PAID_ORDER_STATUSES } from '../utils/paymentMethods'
+import { useI18n } from '../i18n/LanguageProvider'
 import './DashboardRole.css'
 
 export default function StudentDashboardPage() {
+  const { t } = useI18n()
   const { profile, user } = useAuth()
   const { publicKey } = useWallet()
   const toast = useToast()
@@ -65,42 +67,42 @@ export default function StudentDashboardPage() {
               {profile?.avatar_url ? <img src={profile.avatar_url} alt={profile?.full_name || 'Student'} /> : <span>{(profile?.full_name || 'S').charAt(0).toUpperCase()}</span>}
             </div>
             <div>
-              <span className="section-tag">Student Dashboard</span>
-              <h1>Halo, {profile?.full_name || 'Student'}.</h1>
+              <span className="section-tag">{t('dashboard.studentTag')}</span>
+              <h1>{t('dashboard.hello', { name: profile?.full_name || t('auth.student') })}</h1>
               <p className="text-secondary">
-                Wallet: {publicKey ? shortenAddress(publicKey.toString()) : profile?.wallet_address || 'Not connected'}
+                Wallet: {publicKey ? shortenAddress(publicKey.toString()) : profile?.wallet_address || t('dashboard.notConnected')}
               </p>
             </div>
           </div>
           <div className="role-actions">
-            <Link to="/marketplace" className="btn btn-primary">Open Marketplace</Link>
+            <Link to="/marketplace" className="btn btn-primary">{t('dashboard.openMarketplace')}</Link>
           </div>
         </header>
 
         <div className="dashboard-grid">
-          <div className="card stat-card"><div className="stat-number">{stats.total}</div><div className="stat-label">Total payments</div></div>
-          <div className="card stat-card"><div className="stat-number">{stats.paid}</div><div className="stat-label">Paid invoices</div></div>
-          <div className="card stat-card"><div className="stat-number">{stats.pending}</div><div className="stat-label">Pending invoices</div></div>
-          <div className="card stat-card"><div className="stat-number">{stats.amount.toFixed(3)}</div><div className="stat-label">SOL spent</div></div>
+          <div className="card stat-card"><div className="stat-number">{stats.total}</div><div className="stat-label">{t('dashboard.totalPayments')}</div></div>
+          <div className="card stat-card"><div className="stat-number">{stats.paid}</div><div className="stat-label">{t('dashboard.paidInvoices')}</div></div>
+          <div className="card stat-card"><div className="stat-number">{stats.pending}</div><div className="stat-label">{t('dashboard.pendingInvoices')}</div></div>
+          <div className="card stat-card"><div className="stat-number">{stats.amount.toFixed(3)}</div><div className="stat-label">{t('dashboard.solSpent')}</div></div>
         </div>
 
         <section className="dashboard-section">
-          <h2 className="mb-6">Recent payments</h2>
+          <h2 className="mb-6">{t('dashboard.recentPayments')}</h2>
           {loading ? (
             <div className="card empty-state"><span className="spinner" /></div>
           ) : orders.length === 0 ? (
             <div className="card empty-state">
-              <h3>No purchases yet</h3>
-              <p className="text-secondary">Browse marketplace and buy your first campus item.</p>
+              <h3>{t('dashboard.noPurchases')}</h3>
+              <p className="text-secondary">{t('dashboard.noPurchasesSub')}</p>
             </div>
           ) : (
             <div className="table-wrap">
               <table>
-                <thead><tr><th>Product</th><th>Total</th><th>Payment</th><th>Status</th><th>Pickup Code</th><th>Pickup Status</th><th>Transaction</th><th>Action</th></tr></thead>
+                <thead><tr><th>{t('dashboard.product')}</th><th>{t('dashboard.total')}</th><th>{t('dashboard.payment')}</th><th>{t('dashboard.status')}</th><th>{t('dashboard.pickupCode')}</th><th>{t('dashboard.pickupStatus')}</th><th>{t('dashboard.transaction')}</th><th>{t('dashboard.action')}</th></tr></thead>
                 <tbody>
                   {orders.map((order) => (
                     <tr key={order.id}>
-                      <td>{order.product?.name || 'Product'}<div className="text-muted text-sm">{order.quantity} item</div></td>
+                      <td>{order.product?.name || t('dashboard.product')}<div className="text-muted text-sm">{t('dashboard.item', { count: order.quantity })}</div></td>
                       <td>
                         {order.totalAmount.toFixed(3)} SOL
                         {order.fiatAmount ? <div className="text-muted text-sm">{formatIdr(order.fiatAmount)}</div> : null}
@@ -108,7 +110,7 @@ export default function StudentDashboardPage() {
                       <td>
                         <span className="badge badge-muted">{formatPaymentMethod(order.paymentMethod)}</span>
                         {['qris', 'bank_transfer'].includes(order.paymentMethod) && (
-                          <div className="text-muted text-sm">{order.paymentProofUrl ? 'Proof uploaded' : 'No proof uploaded'}</div>
+                          <div className="text-muted text-sm">{order.paymentProofUrl ? t('dashboard.proofUploaded') : t('dashboard.noProofUploaded')}</div>
                         )}
                       </td>
                       <td><span className={`badge badge-${getPaymentStatusTone(order.status)}`}>{formatPaymentStatus(order.status, order.paymentMethod)}</span></td>
@@ -123,14 +125,14 @@ export default function StudentDashboardPage() {
                       </td>
                       <td>
                         <div className="order-actions">
-                          <Link to={`/pay/${order.invoiceId}`} className="btn btn-outline btn-sm">Open</Link>
+                          <Link to={`/pay/${order.invoiceId}`} className="btn btn-outline btn-sm">{t('dashboard.open')}</Link>
                           {CANCELLABLE_ORDER_STATUSES.has(order.status) && (
                             <button
                               className="btn btn-danger btn-sm"
                               onClick={() => cancelOrder(order)}
                               disabled={cancellingId === order.id}
                             >
-                              {cancellingId === order.id ? 'Cancelling...' : 'Cancel Order'}
+                              {cancellingId === order.id ? t('dashboard.cancelling') : t('dashboard.cancelOrder')}
                             </button>
                           )}
                         </div>

@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import ProfileSettings from '../components/ProfileSettings'
 import { useAuth } from '../components/authContext'
+import { useI18n } from '../i18n/LanguageProvider'
 import './DashboardRole.css'
 
 export default function ProfileSettingsPage() {
+  const { t } = useI18n()
   const { profile } = useAuth()
   const dashboardPath = profile?.role === 'seller' ? '/seller/dashboard' : '/student/dashboard'
 
@@ -12,12 +14,12 @@ export default function ProfileSettingsPage() {
       <div className="container profile-settings-page">
         <header className="role-header">
           <div>
-            <span className="section-tag">Account Settings</span>
-            <h1>Setting profil</h1>
-            <p className="text-secondary">Kelola nama, wallet, dan foto profil akun KampusPay.</p>
+            <span className="section-tag">{t('profile.accountSettings')}</span>
+            <h1>{t('profile.pageTitle')}</h1>
+            <p className="text-secondary">{t('profile.pageSub')}</p>
           </div>
           <div className="role-actions">
-            <Link to={dashboardPath} className="btn btn-outline">Back to Dashboard</Link>
+            <Link to={dashboardPath} className="btn btn-outline">{t('profile.backDashboard')}</Link>
           </div>
         </header>
 

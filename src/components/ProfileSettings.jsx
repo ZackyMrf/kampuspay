@@ -6,6 +6,7 @@ import { shortenAddress } from '../hooks/useWallet'
 import { updateSellerProfile } from '../utils/marketplaceStorage'
 import { updateUserProfile, uploadProfileAvatar } from '../utils/profileStorage'
 import WalletModal from './WalletModal'
+import { useI18n } from '../i18n/LanguageProvider'
 
 function getInitials(name, fallback = 'KP') {
   const parts = name?.trim().split(/\s+/).filter(Boolean) || []
@@ -14,6 +15,7 @@ function getInitials(name, fallback = 'KP') {
 }
 
 export default function ProfileSettings() {
+  const { t } = useI18n()
   const { user, profile, seller, refreshProfile } = useAuth()
   const { publicKey, wallet } = useWallet()
   const toast = useToast()
@@ -38,10 +40,15 @@ export default function ProfileSettings() {
   const avatarUrl = avatarPreview || profile?.avatar_url || ''
   const connectedWallet = publicKey?.toString() || ''
   const walletSummary = useMemo(() => {
-    if (connectedWallet) return `${wallet?.adapter?.name || 'Connected'}: ${shortenAddress(connectedWallet)}`
-    if (form.walletAddress) return `Saved: ${shortenAddress(form.walletAddress)}`
-    return 'No wallet saved'
-  }, [connectedWallet, form.walletAddress, wallet?.adapter?.name])
+    if (connectedWallet) {
+      return t('profile.connectedWallet', {
+        walletName: wallet?.adapter?.name || 'Connected',
+        wallet: shortenAddress(connectedWallet),
+      })
+    }
+    if (form.walletAddress) return t('profile.savedWallet', { wallet: shortenAddress(form.walletAddress) })
+    return t('profile.noWallet')
+  }, [connectedWallet, form.walletAddress, t, wallet?.adapter?.name])
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -123,8 +130,8 @@ export default function ProfileSettings() {
           )}
         </div>
         <div>
-          <span className="section-tag">Profile Settings</span>
-          <h2>Atur profil</h2>
+          <span className="section-tag">{t('profile.profileSettings')}</span>
+          <h2>{t('profile.editProfile')}</h2>
           <p className="text-secondary">{walletSummary}</p>
         </div>
       </div>
@@ -132,25 +139,25 @@ export default function ProfileSettings() {
       <form className="profile-settings-form" onSubmit={saveProfile}>
         <div className="grid-2">
           <div className="form-group">
-            <label className="form-label">Nama</label>
+            <label className="form-label">{t('profile.name')}</label>
             <input
               className="form-input"
               name="fullName"
               value={form.fullName}
               onChange={handleChange}
-              placeholder="Nama lengkap"
+              placeholder={t('profile.fullNamePlaceholder')}
             />
           </div>
 
           {profile?.role === 'seller' && (
             <div className="form-group">
-              <label className="form-label">Nama Toko</label>
+              <label className="form-label">{t('profile.storeName')}</label>
               <input
                 className="form-input"
                 name="storeName"
                 value={form.storeName}
                 onChange={handleChange}
-                placeholder="Nama toko"
+                placeholder={t('profile.storeNamePlaceholder')}
               />
             </div>
           )}
@@ -171,7 +178,7 @@ export default function ProfileSettings() {
               className="btn btn-outline"
               onClick={() => setWalletModalOpen(true)}
             >
-              Connect
+              {t('wallet.connectShort')}
             </button>
             {connectedWallet && (
               <button
@@ -179,25 +186,25 @@ export default function ProfileSettings() {
                 className="btn btn-ghost"
                 onClick={() => setForm((current) => ({ ...current, walletAddress: connectedWallet }))}
               >
-                Use Connected
+                {t('profile.useConnected')}
               </button>
             )}
           </div>
-          <span className="form-hint">Untuk seller, wallet ini juga menjadi wallet penerima pembayaran.</span>
+          <span className="form-hint">{t('profile.walletHint')}</span>
         </div>
 
         <div className="form-group">
-          <label className="form-label">Foto Profil</label>
+          <label className="form-label">{t('profile.photo')}</label>
           <label className="btn btn-outline profile-upload-button">
-            Pilih Foto
+            {t('profile.choosePhoto')}
             <input type="file" accept="image/*" onChange={handleAvatarChange} />
           </label>
-          <span className="form-hint">JPG, PNG, WebP, atau GIF. Maksimal 3 MB.</span>
+          <span className="form-hint">{t('profile.photoHint')}</span>
         </div>
 
         <div className="profile-settings-actions">
           <button className="btn btn-primary" disabled={saving}>
-            {saving ? 'Saving...' : 'Save Profile'}
+            {saving ? t('profile.saving') : t('profile.save')}
           </button>
         </div>
       </form>
