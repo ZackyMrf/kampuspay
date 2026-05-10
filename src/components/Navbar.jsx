@@ -37,6 +37,18 @@ function WalletControls({
   onOpenFaucet,
   t,
 }) {
+  const [walletMenuOpen, setWalletMenuOpen] = useState(false)
+  const walletMenuRef = useRef(null)
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (!walletMenuRef.current?.contains(event.target)) setWalletMenuOpen(false)
+    }
+
+    if (walletMenuOpen) document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
+  }, [walletMenuOpen])
+
   if (!connected) {
     return (
       <button
@@ -49,12 +61,14 @@ function WalletControls({
   }
 
   return (
-    <div className={`wallet-actions ${full ? 'wallet-actions-full' : ''}`}>
-      <button className="btn btn-outline btn-sm wallet-faucet-btn" onClick={onOpenFaucet}>
-        {t('wallet.faucet')}
-      </button>
-      <div className={`wallet-connected ${full ? 'wallet-full' : ''}`}>
-        <div className="wallet-indicator">
+    <div className={`wallet-actions ${full ? 'wallet-actions-full' : ''}`} ref={walletMenuRef}>
+      <button
+        className={`wallet-menu-trigger ${full ? 'wallet-menu-trigger-full' : ''}`}
+        onClick={() => setWalletMenuOpen((current) => !current)}
+        aria-expanded={walletMenuOpen}
+        aria-label="Open wallet menu"
+      >
+        <span className="wallet-indicator wallet-indicator-button">
           {wallet?.adapter?.icon && (
             <img
               src={wallet.adapter.icon}
@@ -64,11 +78,32 @@ function WalletControls({
           )}
           <span className="wallet-dot" />
           <span className="wallet-address">{shortenAddress(walletAddress)}</span>
+        </span>
+        <span className="wallet-menu-chevron">v</span>
+      </button>
+
+      {walletMenuOpen && (
+        <div className="wallet-menu-popover">
+          <button
+            className="wallet-menu-item"
+            onClick={() => {
+              setWalletMenuOpen(false)
+              onOpenFaucet()
+            }}
+          >
+            {t('wallet.faucet')}
+          </button>
+          <button
+            className="wallet-menu-item danger"
+            onClick={() => {
+              setWalletMenuOpen(false)
+              onDisconnect()
+            }}
+          >
+            {t('wallet.disconnect')}
+          </button>
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={onDisconnect}>
-          {t('wallet.disconnect')}
-        </button>
-      </div>
+      )}
     </div>
   )
 }
@@ -223,9 +258,6 @@ export default function Navbar() {
             <LanguageToggle />
             {isLoggedIn && (
               <div className="navbar-account">
-                <button className="btn btn-ghost btn-sm" onClick={handleLogout}>
-                  {t('nav.logout')}
-                </button>
                 <div className="profile-menu" ref={profileMenuRef}>
                   <button
                     className="profile-avatar-button"
@@ -248,6 +280,12 @@ export default function Navbar() {
                       >
                         {t('nav.profileSettings')}
                       </Link>
+                      <button
+                        className="profile-menu-link profile-menu-button danger"
+                        onClick={handleLogout}
+                      >
+                        {t('nav.logout')}
+                      </button>
                     </div>
                   )}
                 </div>
@@ -301,9 +339,6 @@ export default function Navbar() {
               <LanguageToggle full />
               {isLoggedIn && (
                 <div className="mobile-account-row">
-                  <button className="btn btn-ghost btn-full" onClick={handleLogout}>
-                    {t('nav.logout')}
-                  </button>
                   <Link
                     to="/settings/profile"
                     className="mobile-profile-link"
@@ -313,6 +348,9 @@ export default function Navbar() {
                     <ProfileAvatar profile={profile} />
                     <span>{t('nav.profileSettings')}</span>
                   </Link>
+                  <button className="btn btn-ghost btn-full" onClick={handleLogout}>
+                    {t('nav.logout')}
+                  </button>
                 </div>
               )}
             </div>
