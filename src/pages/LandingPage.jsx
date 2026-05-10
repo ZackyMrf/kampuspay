@@ -49,12 +49,6 @@ const flows = [
   },
 ]
 
-const stats = [
-  { label: 'UX', value: { en: 'Clean and smooth', id: 'Rapi dan mulus' } },
-  { label: { en: 'Proof', id: 'Bukti' }, value: { en: 'On-chain verification', id: 'Verifikasi on-chain' } },
-  { label: 'Mode', value: 'Solana Devnet' },
-]
-
 const useCases = [
   { en: 'Class contribution', id: 'Iuran kelas' },
   { en: 'Student organization dues', id: 'Iuran organisasi mahasiswa' },
@@ -214,14 +208,6 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="hero-stats">
-              {stats.map((item) => (
-                <div className="hero-stat" key={text(item.label)}>
-                  <span className="hero-stat-label">{text(item.label)}</span>
-                  <strong>{text(item.value)}</strong>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
