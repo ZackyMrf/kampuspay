@@ -23,6 +23,10 @@ export default defineConfig({
   define: {
     'process.env': {},
   },
+  build: {
+    target: 'es2020',
+    cssTarget: 'safari14',
+  },
   optimizeDeps: {
     noDiscovery: true,
     include: [

@@ -109,8 +109,11 @@ export default function LandingPage() {
               <div className="hero-copy">
                 <p className="hero-kicker">KampusPay Lite</p>
                 <h1 className="hero-title">
-                  {t('landing.title').split('\n').map((line) => (
-                    <span key={line}>{line}<br /></span>
+                  {t('landing.title').split('\n').map((line, index, lines) => (
+                    <span key={line}>
+                      {line}
+                      {index < lines.length - 1 && <><br />{' '}</>}
+                    </span>
                   ))}
                 </h1>
                 <p className="hero-subtitle">

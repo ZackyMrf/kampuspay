@@ -56,7 +56,8 @@
   letter-spacing: 0;
   color: #131313;
   max-width: none;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .hero-subtitle {

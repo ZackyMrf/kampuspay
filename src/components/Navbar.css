@@ -369,7 +369,7 @@
   background: rgba(255, 255, 255, 0.86);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .navbar-logo-img {
     width: 178px;
     max-width: 54vw;
@@ -382,4 +382,20 @@
   .wallet-connected,
   .wallet-actions { width: 100%; }
   .wallet-connected { flex-wrap: wrap; }
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    padding-top: 10px;
+  }
+
+  .navbar-inner {
+    height: 64px;
+    padding: 0 12px;
+  }
+
+  .mobile-menu {
+    width: min(100% - 24px, 1440px);
+    margin: 10px auto 0;
+  }
 }

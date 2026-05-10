@@ -134,14 +134,11 @@ export default function Navbar() {
       <nav className="navbar">
         <div className="container navbar-inner">
           <Link to={isLoggedIn ? dashboardPath : '/'} className="navbar-logo">
-            <picture>
-              <source srcSet="/kampus_pay_blackbg_nav.png" media="(prefers-color-scheme: dark)" />
-              <img
-                src="/kampus_pay_whitebg_nav.png"
-                alt="KampusPay"
-                className="navbar-logo-img"
-              />
-            </picture>
+            <img
+              src="/kampus_pay_whitebg_nav.png"
+              alt="KampusPay"
+              className="navbar-logo-img"
+            />
           </Link>
 
           <div className="navbar-links">
