@@ -84,6 +84,26 @@ create table if not exists public.orders (
   payment_note text
 );
 
+create table if not exists public.chat_threads (
+  id uuid primary key default gen_random_uuid(),
+  product_id uuid references public.products(id) on delete set null,
+  order_id uuid references public.orders(id) on delete set null,
+  student_id uuid not null references public.profiles(id) on delete cascade,
+  seller_id uuid not null references public.sellers(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  thread_id uuid not null references public.chat_threads(id) on delete cascade,
+  sender_id uuid not null references public.profiles(id) on delete cascade,
+  sender_role text not null check (sender_role in ('student', 'seller')),
+  message text not null,
+  created_at timestamptz not null default now(),
+  read_at timestamptz
+);
+
 alter table public.profiles
   add column if not exists avatar_url text default '';
 
@@ -100,6 +120,16 @@ alter table public.orders
   add column if not exists fiat_amount numeric,
   add column if not exists fiat_currency text default 'IDR',
   add column if not exists payment_note text;
+
+alter table public.chat_threads
+  add column if not exists product_id uuid references public.products(id) on delete set null,
+  add column if not exists order_id uuid references public.orders(id) on delete set null,
+  add column if not exists student_id uuid references public.profiles(id) on delete cascade,
+  add column if not exists seller_id uuid references public.sellers(id) on delete cascade,
+  add column if not exists updated_at timestamptz not null default now();
+
+alter table public.chat_messages
+  add column if not exists read_at timestamptz;
 
 alter table public.invoices
   add column if not exists payment_method text default 'solana',
@@ -129,6 +159,8 @@ alter table public.sellers enable row level security;
 alter table public.products enable row level security;
 alter table public.invoices enable row level security;
 alter table public.orders enable row level security;
+alter table public.chat_threads enable row level security;
+alter table public.chat_messages enable row level security;
 
 drop policy if exists "Profiles are readable" on public.profiles;
 drop policy if exists "Users can insert own profile" on public.profiles;
@@ -143,6 +175,11 @@ drop policy if exists "Invoices are updateable" on public.invoices;
 drop policy if exists "Orders are readable" on public.orders;
 drop policy if exists "Orders are insertable" on public.orders;
 drop policy if exists "Orders are updateable" on public.orders;
+drop policy if exists "Chat threads are readable by participants" on public.chat_threads;
+drop policy if exists "Students can create chat threads" on public.chat_threads;
+drop policy if exists "Chat threads are updateable by participants" on public.chat_threads;
+drop policy if exists "Chat messages are readable by participants" on public.chat_messages;
+drop policy if exists "Participants can send chat messages" on public.chat_messages;
 
 create policy "Profiles are readable" on public.profiles for select using (true);
 create policy "Users can insert own profile" on public.profiles for insert with check (true);
@@ -170,6 +207,47 @@ create policy "Orders are updateable" on public.orders for update
   with check (
     auth.uid() = buyer_user_id
     or seller_id in (select id from public.sellers where user_id = auth.uid())
+  );
+
+create policy "Chat threads are readable by participants" on public.chat_threads for select
+  using (
+    auth.uid() = student_id
+    or seller_id in (select id from public.sellers where user_id = auth.uid())
+  );
+
+create policy "Students can create chat threads" on public.chat_threads for insert
+  with check (
+    auth.uid() = student_id
+    or seller_id in (select id from public.sellers where user_id = auth.uid())
+  );
+
+create policy "Chat threads are updateable by participants" on public.chat_threads for update
+  using (
+    auth.uid() = student_id
+    or seller_id in (select id from public.sellers where user_id = auth.uid())
+  )
+  with check (
+    auth.uid() = student_id
+    or seller_id in (select id from public.sellers where user_id = auth.uid())
+  );
+
+create policy "Chat messages are readable by participants" on public.chat_messages for select
+  using (
+    thread_id in (
+      select id from public.chat_threads
+      where student_id = auth.uid()
+      or seller_id in (select id from public.sellers where user_id = auth.uid())
+    )
+  );
+
+create policy "Participants can send chat messages" on public.chat_messages for insert
+  with check (
+    auth.uid() = sender_id
+    and thread_id in (
+      select id from public.chat_threads
+      where student_id = auth.uid()
+      or seller_id in (select id from public.sellers where user_id = auth.uid())
+    )
   );
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

@@ -18,6 +18,8 @@ import SellerProductsPage from './pages/SellerProductsPage'
 import CreateProductPage from './pages/CreateProductPage'
 import SellerOrdersPage from './pages/SellerOrdersPage'
 import ProfileSettingsPage from './pages/ProfileSettingsPage'
+import ChatInboxPage from './pages/ChatInboxPage'
+import ChatThreadPage from './pages/ChatThreadPage'
 import { useI18n } from './i18n/LanguageProvider'
 import './App.css'
 
@@ -84,6 +86,9 @@ export default function App() {
             <Route path="/seller/products/create" element={<RoleGuard role="seller"><CreateProductPage /></RoleGuard>} />
             <Route path="/seller/products/:productId/edit" element={<RoleGuard role="seller"><CreateProductPage /></RoleGuard>} />
             <Route path="/seller/orders" element={<RoleGuard role="seller"><SellerOrdersPage /></RoleGuard>} />
+            <Route path="/seller/chats" element={<RoleGuard role="seller"><ChatInboxPage role="seller" /></RoleGuard>} />
+            <Route path="/student/chats" element={<RoleGuard role="student"><ChatInboxPage role="student" /></RoleGuard>} />
+            <Route path="/chats/:threadId" element={<AuthGuard><ChatThreadPage /></AuthGuard>} />
             <Route path="/settings/profile" element={<AuthGuard><ProfileSettingsPage /></AuthGuard>} />
             <Route path="/dashboard" element={<DashboardRedirect />} />
             <Route path="/legacy/dashboard" element={<DashboardPage />} />

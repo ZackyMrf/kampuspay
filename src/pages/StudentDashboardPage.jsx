@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useAuth } from '../components/authContext'
 import { useToast } from '../components/toastContext'
 import { shortenAddress } from '../hooks/useWallet'
 import { cancelOrderByInvoice, getStudentOrders } from '../utils/marketplaceStorage'
+import { getOrCreateChatThread } from '../utils/chatStorage'
 import { getExplorerUrl } from '../utils/solana'
 import { formatPickupStatus, getPickupStatusTone } from '../utils/pickupCode'
 import { CANCELLABLE_ORDER_STATUSES, formatIdr, formatPaymentMethod, formatPaymentStatus, getPaymentStatusTone, PAID_ORDER_STATUSES } from '../utils/paymentMethods'
@@ -14,11 +15,13 @@ import './DashboardRole.css'
 export default function StudentDashboardPage() {
   const { t } = useI18n()
   const { profile, user } = useAuth()
+  const navigate = useNavigate()
   const { publicKey } = useWallet()
   const toast = useToast()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [cancellingId, setCancellingId] = useState(null)
+  const [openingChatId, setOpeningChatId] = useState(null)
 
   useEffect(() => {
     let ignore = false
@@ -55,6 +58,23 @@ export default function StudentDashboardPage() {
       toast.error(error.message || 'Gagal membatalkan order.')
     } finally {
       setCancellingId(null)
+    }
+  }
+
+  const openOrderChat = async (order) => {
+    try {
+      setOpeningChatId(order.id)
+      const thread = await getOrCreateChatThread({
+        productId: order.productId,
+        orderId: order.id,
+        studentId: user.id,
+        sellerId: order.sellerId,
+      })
+      navigate(`/chats/${thread.id}`)
+    } catch (error) {
+      toast.error(error.message || 'Gagal membuka chat.')
+    } finally {
+      setOpeningChatId(null)
     }
   }
 
@@ -126,6 +146,13 @@ export default function StudentDashboardPage() {
                       <td>
                         <div className="order-actions">
                           <Link to={`/pay/${order.invoiceId}`} className="btn btn-outline btn-sm">{t('dashboard.open')}</Link>
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={() => openOrderChat(order)}
+                            disabled={openingChatId === order.id}
+                          >
+                            {openingChatId === order.id ? 'Opening...' : 'Chat Seller'}
+                          </button>
                           {CANCELLABLE_ORDER_STATUSES.has(order.status) && (
                             <button
                               className="btn btn-danger btn-sm"

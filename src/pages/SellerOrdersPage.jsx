@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../components/authContext'
 import { useToast } from '../components/toastContext'
 import {
@@ -10,6 +10,7 @@ import {
   rejectReviewPaymentByOrder,
   updateOrderPickupStatus,
 } from '../utils/marketplaceStorage'
+import { getOrCreateChatThread } from '../utils/chatStorage'
 import { shortenAddress } from '../hooks/useWallet'
 import { getExplorerUrl } from '../utils/solana'
 import { formatPickupStatus, getPickupStatusTone } from '../utils/pickupCode'
@@ -20,10 +21,12 @@ import './DashboardRole.css'
 export default function SellerOrdersPage() {
   const { seller } = useAuth()
   const toast = useToast()
+  const navigate = useNavigate()
   const [orders, setOrders] = useState([])
   const [sellerTrust, setSellerTrust] = useState(null)
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState(null)
+  const [openingChatId, setOpeningChatId] = useState(null)
 
   useEffect(() => {
     if (!seller?.id) return
@@ -93,6 +96,23 @@ export default function SellerOrdersPage() {
       toast.error(error.message || 'Seller confirmation failed.')
     } finally {
       setUpdatingId(null)
+    }
+  }
+
+  const openOrderChat = async (order) => {
+    try {
+      setOpeningChatId(order.id)
+      const thread = await getOrCreateChatThread({
+        productId: order.productId,
+        orderId: order.id,
+        studentId: order.buyerUserId,
+        sellerId: seller.id,
+      })
+      navigate(`/chats/${thread.id}`)
+    } catch (error) {
+      toast.error(error.message || 'Gagal membuka chat.')
+    } finally {
+      setOpeningChatId(null)
     }
   }
 
@@ -187,6 +207,13 @@ export default function SellerOrdersPage() {
                             {updatingId === order.id ? 'Updating...' : 'Mark as Picked Up'}
                           </button>
                         )}
+                        <button
+                          className="btn btn-outline btn-sm"
+                          onClick={() => openOrderChat(order)}
+                          disabled={!order.buyerUserId || openingChatId === order.id}
+                        >
+                          {openingChatId === order.id ? 'Opening...' : 'Chat Buyer'}
+                        </button>
                       </div>
                     </td>
                   </tr>

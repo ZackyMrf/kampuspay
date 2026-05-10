@@ -95,11 +95,13 @@ export default function Navbar() {
           { path: '/seller/dashboard', label: t('nav.sellerDashboard') },
           { path: '/seller/products', label: t('nav.products') },
           { path: '/seller/orders', label: t('nav.orders') },
+          { path: '/seller/chats', label: 'Chat' },
         ]
       : [
           { path: '/', label: t('nav.home') },
           { path: '/marketplace', label: t('nav.marketplace') },
           { path: '/student/dashboard', label: t('nav.studentDashboard') },
+          { path: '/student/chats', label: 'Chat' },
         ]
     : [
         { path: '/', label: t('nav.home') },

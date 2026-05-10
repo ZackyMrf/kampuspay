@@ -4,6 +4,7 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { useAuth } from '../components/authContext'
 import { useToast } from '../components/toastContext'
 import { createProductCheckout, getProductById } from '../utils/marketplaceStorage'
+import { getOrCreateChatThread } from '../utils/chatStorage'
 import { getSellerBadgeTone } from '../utils/sellerBadge'
 import { useI18n } from '../i18n/LanguageProvider'
 import './MarketplacePage.css'
@@ -19,6 +20,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
   const [checkingOut, setCheckingOut] = useState(false)
+  const [startingChat, setStartingChat] = useState(false)
 
   useEffect(() => {
     let ignore = false
@@ -61,6 +63,29 @@ export default function ProductDetailPage() {
       toast.error(error.message || 'Checkout failed.')
     } finally {
       setCheckingOut(false)
+    }
+  }
+
+  const handleChatSeller = async () => {
+    if (!product) return
+    if (!isLoggedIn || role !== 'student') {
+      toast.info('Login sebagai student untuk chat seller.')
+      navigate('/login')
+      return
+    }
+
+    try {
+      setStartingChat(true)
+      const thread = await getOrCreateChatThread({
+        productId: product.id,
+        studentId: user.id,
+        sellerId: product.sellerId,
+      })
+      navigate(`/chats/${thread.id}`)
+    } catch (error) {
+      toast.error(error.message || 'Gagal membuka chat seller.')
+    } finally {
+      setStartingChat(false)
     }
   }
 
@@ -116,6 +141,9 @@ export default function ProductDetailPage() {
             </div>
             <button className="btn btn-primary btn-lg btn-full" onClick={handleBuy} disabled={checkingOut || product.stock <= 0}>
               {checkingOut ? t('product.creatingInvoice') : t('product.buyNowAmount', { amount: (product.priceSol * quantity).toFixed(3) })}
+            </button>
+            <button className="btn btn-outline btn-lg btn-full mt-4" onClick={handleChatSeller} disabled={startingChat}>
+              {startingChat ? 'Membuka chat...' : 'Chat Seller'}
             </button>
           </div>
         </div>
