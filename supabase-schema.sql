@@ -104,6 +104,29 @@ create table if not exists public.chat_messages (
   read_at timestamptz
 );
 
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'chat_threads'
+  ) then
+    alter publication supabase_realtime add table public.chat_threads;
+  end if;
+
+  if not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'chat_messages'
+  ) then
+    alter publication supabase_realtime add table public.chat_messages;
+  end if;
+end $$;
+
 alter table public.profiles
   add column if not exists avatar_url text default '';
 
@@ -180,6 +203,7 @@ drop policy if exists "Students can create chat threads" on public.chat_threads;
 drop policy if exists "Chat threads are updateable by participants" on public.chat_threads;
 drop policy if exists "Chat messages are readable by participants" on public.chat_messages;
 drop policy if exists "Participants can send chat messages" on public.chat_messages;
+drop policy if exists "Participants can mark chat messages read" on public.chat_messages;
 
 create policy "Profiles are readable" on public.profiles for select using (true);
 create policy "Users can insert own profile" on public.profiles for insert with check (true);
@@ -244,6 +268,22 @@ create policy "Participants can send chat messages" on public.chat_messages for 
   with check (
     auth.uid() = sender_id
     and thread_id in (
+      select id from public.chat_threads
+      where student_id = auth.uid()
+      or seller_id in (select id from public.sellers where user_id = auth.uid())
+    )
+  );
+
+create policy "Participants can mark chat messages read" on public.chat_messages for update
+  using (
+    thread_id in (
+      select id from public.chat_threads
+      where student_id = auth.uid()
+      or seller_id in (select id from public.sellers where user_id = auth.uid())
+    )
+  )
+  with check (
+    thread_id in (
       select id from public.chat_threads
       where student_id = auth.uid()
       or seller_id in (select id from public.sellers where user_id = auth.uid())
