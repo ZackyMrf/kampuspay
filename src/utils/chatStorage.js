@@ -76,6 +76,135 @@ function toMessage(row) {
   }
 }
 
+function realtimeChannelName(prefix) {
+  const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  return `${prefix}:${uniqueId}`
+}
+
+function localReadStorageKey(userId) {
+  return `kampuspay-chat-read:${userId}`
+}
+
+export function getLocalChatReadReceipts(userId) {
+  if (!userId || typeof localStorage === 'undefined') return {}
+  try {
+    return JSON.parse(localStorage.getItem(localReadStorageKey(userId)) || '{}')
+  } catch {
+    return {}
+  }
+}
+
+export function getLocalChatReadAt(threadId, userId) {
+  return getLocalChatReadReceipts(userId)[threadId] || ''
+}
+
+export function setLocalChatReadAt(threadId, userId, readAt = new Date().toISOString()) {
+  if (!threadId || !userId || typeof localStorage === 'undefined') return readAt
+  const receipts = getLocalChatReadReceipts(userId)
+  receipts[threadId] = readAt
+  localStorage.setItem(localReadStorageKey(userId), JSON.stringify(receipts))
+  window.dispatchEvent(new CustomEvent('kampuspay-chat-read', {
+    detail: { threadId, userId, readAt },
+  }))
+  return readAt
+}
+
+export function mapChatMessage(row) {
+  return toMessage(row)
+}
+
+export function subscribeToChatMessages(threadId, onMessage) {
+  assertSupabaseConfigured()
+  const channel = supabase
+    .channel(realtimeChannelName(`chat-messages:${threadId}`))
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'chat_messages',
+        filter: `thread_id=eq.${threadId}`,
+      },
+      (payload) => onMessage(toMessage(payload.new)),
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}
+
+export function subscribeToIncomingChatMessages(onMessage) {
+  assertSupabaseConfigured()
+  const channel = supabase
+    .channel(realtimeChannelName('chat-message-inserts'))
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'chat_messages',
+      },
+      (payload) => onMessage(toMessage(payload.new)),
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}
+
+export function subscribeToChatMessageChanges(onChange) {
+  assertSupabaseConfigured()
+  const channel = supabase
+    .channel(realtimeChannelName('chat-message-changes'))
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'chat_messages',
+      },
+      (payload) => onChange({
+        eventType: payload.eventType,
+        message: toMessage(payload.new),
+        oldMessage: toMessage(payload.old),
+      }),
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}
+
+export function subscribeToChatThreadList({ role, userId, sellerId }, onChange) {
+  assertSupabaseConfigured()
+  const filter = role === 'seller'
+    ? `seller_id=eq.${sellerId}`
+    : `student_id=eq.${userId}`
+
+  const channel = supabase
+    .channel(realtimeChannelName(`chat-threads:${role}:${sellerId || userId}`))
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'chat_threads',
+        filter,
+      },
+      onChange,
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}
+
 async function attachLatestMessages(threads) {
   if (threads.length === 0) return threads
   const ids = threads.map((thread) => thread.id)
@@ -177,6 +306,51 @@ export async function getSellerChatThreads(sellerId) {
   return attachLatestMessages(data.map((thread) => toThread(thread)))
 }
 
+export async function getUnreadChatCount({
+  role,
+  userId,
+  sellerId,
+  excludeThreadId = '',
+  localReadReceipts = getLocalChatReadReceipts(userId),
+}) {
+  assertSupabaseConfigured()
+  if (!userId) return 0
+
+  let threadQuery = supabase
+    .from('chat_threads')
+    .select('id')
+
+  if (role === 'seller') {
+    if (!sellerId) return 0
+    threadQuery = threadQuery.eq('seller_id', sellerId)
+  } else {
+    threadQuery = threadQuery.eq('student_id', userId)
+  }
+
+  const { data: threads, error: threadError } = await threadQuery
+  if (threadError) throw threadError
+  if (!threads.length) return 0
+
+  const threadIds = threads
+    .map((thread) => thread.id)
+    .filter((id) => id !== excludeThreadId)
+
+  if (!threadIds.length) return 0
+
+  const { data, error } = await supabase
+    .from('chat_messages')
+    .select('id, thread_id, created_at')
+    .in('thread_id', threadIds)
+    .neq('sender_id', userId)
+    .is('read_at', null)
+
+  if (error) throw error
+  return data.filter((message) => {
+    const localReadAt = localReadReceipts[message.thread_id]
+    return !localReadAt || new Date(message.created_at) > new Date(localReadAt)
+  }).length
+}
+
 export async function getChatMessages(threadId) {
   assertSupabaseConfigured()
   const { data, error } = await supabase
@@ -187,6 +361,20 @@ export async function getChatMessages(threadId) {
 
   if (error) throw error
   return data.map(toMessage)
+}
+
+export async function markChatThreadRead(threadId, userId) {
+  assertSupabaseConfigured()
+  if (!threadId || !userId) return
+
+  const { error } = await supabase
+    .from('chat_messages')
+    .update({ read_at: new Date().toISOString() })
+    .eq('thread_id', threadId)
+    .neq('sender_id', userId)
+    .is('read_at', null)
+
+  if (error) throw error
 }
 
 export async function sendChatMessage({ threadId, senderId, senderRole, message }) {
