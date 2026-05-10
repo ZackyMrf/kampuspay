@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../components/authContext'
 import { useToast } from '../components/toastContext'
-import { getSellerChatThreads, getStudentChatThreads } from '../utils/chatStorage'
+import {
+  getSellerChatThreads,
+  getStudentChatThreads,
+  getLocalChatReadAt,
+  subscribeToChatMessageChanges,
+  subscribeToChatThreadList,
+} from '../utils/chatStorage'
 import './ChatPage.css'
 
 function formatTime(value) {
@@ -18,6 +24,17 @@ function formatTime(value) {
 function threadTitle(thread, role) {
   if (role === 'seller') return thread.student?.fullName || thread.student?.email || 'Student'
   return thread.seller?.storeName || 'Campus seller'
+}
+
+function hasUnread(thread, userId) {
+  const localReadAt = getLocalChatReadAt(thread.id, userId)
+  if (localReadAt && thread.latestMessage?.createdAt && new Date(thread.latestMessage.createdAt) <= new Date(localReadAt)) {
+    return false
+  }
+
+  return thread.latestMessage
+    && thread.latestMessage.senderId !== userId
+    && !thread.latestMessage.readAt
 }
 
 export default function ChatInboxPage({ role }) {
@@ -55,6 +72,36 @@ export default function ChatInboxPage({ role }) {
     }
   }, [role, seller?.id, toast, user?.id])
 
+  useEffect(() => {
+    if ((role === 'seller' && !seller?.id) || (role === 'student' && !user?.id)) return undefined
+
+    const reloadThreads = () => {
+      const loader = role === 'seller'
+        ? getSellerChatThreads(seller?.id)
+        : getStudentChatThreads(user?.id)
+
+      loader
+        .then((data) => setThreads(data))
+        .catch((error) => toast.error(error.message || 'Failed to refresh chats.'))
+    }
+
+    const unsubscribeThreads = subscribeToChatThreadList({
+      role,
+      userId: user?.id,
+      sellerId: seller?.id,
+    }, reloadThreads)
+
+    const unsubscribeMessages = subscribeToChatMessageChanges(reloadThreads)
+    const handleLocalRead = () => reloadThreads()
+    window.addEventListener('kampuspay-chat-read', handleLocalRead)
+
+    return () => {
+      unsubscribeThreads()
+      unsubscribeMessages()
+      window.removeEventListener('kampuspay-chat-read', handleLocalRead)
+    }
+  }, [role, seller?.id, toast, user?.id])
+
   return (
     <div className="page">
       <div className="container">
@@ -85,12 +132,15 @@ export default function ChatInboxPage({ role }) {
         ) : (
           <div className="chat-thread-list">
             {threads.map((thread) => (
-              <Link to={`/chats/${thread.id}`} className="card card-sm chat-thread-card" key={thread.id}>
+              <Link to={`/chats/${thread.id}`} className={`card card-sm chat-thread-card ${hasUnread(thread, user?.id) ? 'unread' : ''}`} key={thread.id}>
                 <div className="chat-thread-thumb">
                   {thread.product?.imageUrl ? <img src={thread.product.imageUrl} alt={thread.product.name} /> : 'KP'}
                 </div>
                 <div>
-                  <strong>{threadTitle(thread, role)}</strong>
+                  <strong>
+                    {threadTitle(thread, role)}
+                    {hasUnread(thread, user?.id) && <span className="chat-unread-dot" aria-label="Pesan belum dibaca" />}
+                  </strong>
                   <div className="text-muted text-sm">{thread.product?.name || 'Marketplace chat'}</div>
                   <div className="chat-preview text-secondary text-sm">
                     {thread.latestMessage?.message || 'Belum ada pesan.'}

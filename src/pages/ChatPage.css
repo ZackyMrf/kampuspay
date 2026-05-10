@@ -138,6 +138,21 @@
   transform: translateY(-1px);
 }
 
+.chat-thread-card.unread {
+  border-color: rgba(17, 17, 17, 0.22);
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.chat-unread-dot {
+  width: 8px;
+  height: 8px;
+  margin-left: 8px;
+  border-radius: 999px;
+  display: inline-block;
+  background: #111111;
+  box-shadow: 0 0 0 4px rgba(17, 17, 17, 0.08);
+}
+
 .chat-thread-thumb {
   width: 54px;
   height: 54px;

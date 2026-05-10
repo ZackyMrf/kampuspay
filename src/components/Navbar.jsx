@@ -8,6 +8,7 @@ import FaucetModal from './FaucetModal'
 import LanguageToggle from './LanguageToggle'
 import WalletModal from './WalletModal'
 import { useI18n } from '../i18n/LanguageProvider'
+import { getLocalChatReadReceipts, getUnreadChatCount, subscribeToChatMessageChanges } from '../utils/chatStorage'
 import './Navbar.css'
 
 function getInitials(name, fallback = 'KP') {
@@ -72,19 +73,32 @@ function WalletControls({
   )
 }
 
+function ChatNavLabel({ count }) {
+  return (
+    <span className="chat-nav-label">
+      Chat
+      {count > 0 && <span className="chat-nav-badge">{count > 99 ? '99+' : count}</span>}
+    </span>
+  )
+}
+
 export default function Navbar() {
   const { t } = useI18n()
   const { publicKey, connected, disconnect, wallet } = useWallet()
-  const { isLoggedIn, profile, logout } = useAuth()
+  const { isLoggedIn, profile, seller, user, logout } = useAuth()
   const toast = useToast()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [walletModalOpen, setWalletModalOpen] = useState(false)
   const [faucetModalOpen, setFaucetModalOpen] = useState(false)
+  const [unreadChats, setUnreadChats] = useState(0)
   const profileMenuRef = useRef(null)
 
   const walletAddress = publicKey?.toString()
+  const activeChatThreadId = location.pathname.startsWith('/chats/')
+    ? location.pathname.split('/')[2] || ''
+    : ''
 
   const dashboardPath = profile?.role === 'seller' ? '/seller/dashboard' : '/student/dashboard'
   const navLinks = isLoggedIn
@@ -95,13 +109,13 @@ export default function Navbar() {
           { path: '/seller/dashboard', label: t('nav.sellerDashboard') },
           { path: '/seller/products', label: t('nav.products') },
           { path: '/seller/orders', label: t('nav.orders') },
-          { path: '/seller/chats', label: 'Chat' },
+          { path: '/seller/chats', label: <ChatNavLabel count={unreadChats} /> },
         ]
       : [
           { path: '/', label: t('nav.home') },
           { path: '/marketplace', label: t('nav.marketplace') },
           { path: '/student/dashboard', label: t('nav.studentDashboard') },
-          { path: '/student/chats', label: 'Chat' },
+          { path: '/student/chats', label: <ChatNavLabel count={unreadChats} /> },
         ]
     : [
         { path: '/', label: t('nav.home') },
@@ -130,6 +144,47 @@ export default function Navbar() {
     if (profileMenuOpen) document.addEventListener('pointerdown', handlePointerDown)
     return () => document.removeEventListener('pointerdown', handlePointerDown)
   }, [profileMenuOpen])
+
+  useEffect(() => {
+    if (!isLoggedIn || !user?.id || !profile?.role) {
+      Promise.resolve().then(() => setUnreadChats(0))
+      return undefined
+    }
+
+    let ignore = false
+    const refreshUnread = () => {
+      getUnreadChatCount({
+        role: profile.role,
+        userId: user.id,
+        sellerId: seller?.id,
+        excludeThreadId: activeChatThreadId,
+        localReadReceipts: getLocalChatReadReceipts(user.id),
+      })
+        .then((count) => {
+          if (!ignore) setUnreadChats(count)
+        })
+        .catch(() => {
+          if (!ignore) setUnreadChats(0)
+        })
+    }
+
+    refreshUnread()
+
+    const unsubscribe = subscribeToChatMessageChanges(({ eventType, message }) => {
+      refreshUnread()
+      if (eventType === 'INSERT' && message?.senderId !== user.id && !location.pathname.startsWith('/chats/')) {
+        toast.info('Ada chat baru masuk.')
+      }
+    })
+    const handleLocalRead = () => refreshUnread()
+    window.addEventListener('kampuspay-chat-read', handleLocalRead)
+
+    return () => {
+      ignore = true
+      unsubscribe()
+      window.removeEventListener('kampuspay-chat-read', handleLocalRead)
+    }
+  }, [activeChatThreadId, isLoggedIn, location.pathname, profile?.role, seller?.id, toast, user?.id])
 
   return (
     <>

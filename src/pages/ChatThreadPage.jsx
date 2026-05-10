@@ -2,7 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../components/authContext'
 import { useToast } from '../components/toastContext'
-import { getChatMessages, getChatThread, sendChatMessage } from '../utils/chatStorage'
+import {
+  getChatMessages,
+  getChatThread,
+  markChatThreadRead,
+  sendChatMessage,
+  setLocalChatReadAt,
+  subscribeToChatMessages,
+} from '../utils/chatStorage'
 import './ChatPage.css'
 
 function formatTime(value) {
@@ -31,8 +38,14 @@ export default function ChatThreadPage() {
     Promise.all([getChatThread(threadId), getChatMessages(threadId)])
       .then(([nextThread, nextMessages]) => {
         if (!ignore) {
+          const localReadAt = setLocalChatReadAt(threadId, user.id)
           setThread(nextThread)
-          setMessages(nextMessages)
+          setMessages(nextMessages.map((message) => (
+            message.senderId !== user.id && !message.readAt
+              ? { ...message, readAt: localReadAt }
+              : message
+          )))
+          markChatThreadRead(threadId, user.id).catch(() => {})
         }
       })
       .catch((error) => toast.error(error.message || 'Failed to load chat.'))
@@ -43,7 +56,28 @@ export default function ChatThreadPage() {
     return () => {
       ignore = true
     }
-  }, [threadId, toast])
+  }, [threadId, toast, user.id])
+
+  useEffect(() => {
+    const unsubscribe = subscribeToChatMessages(threadId, (nextMessage) => {
+      setMessages((current) => {
+        if (current.some((message) => message.id === nextMessage.id)) return current
+        const localReadAt = nextMessage.senderId !== user.id && !nextMessage.readAt
+          ? setLocalChatReadAt(threadId, user.id)
+          : ''
+        const visibleMessage = nextMessage.senderId !== user.id && !nextMessage.readAt
+          ? { ...nextMessage, readAt: localReadAt }
+          : nextMessage
+        return [...current, visibleMessage]
+      })
+      if (nextMessage.senderId !== user.id) {
+        markChatThreadRead(threadId, user.id).catch(() => {})
+        toast.info('Pesan baru masuk.')
+      }
+    })
+
+    return unsubscribe
+  }, [threadId, toast, user.id])
 
   useEffect(() => {
     const node = messagesRef.current
@@ -68,7 +102,10 @@ export default function ChatThreadPage() {
         senderRole: role,
         message: draft,
       })
-      setMessages((current) => [...current, nextMessage])
+      setMessages((current) => {
+        if (current.some((message) => message.id === nextMessage.id)) return current
+        return [...current, nextMessage]
+      })
       setDraft('')
     } catch (error) {
       toast.error(error.message || 'Failed to send message.')
