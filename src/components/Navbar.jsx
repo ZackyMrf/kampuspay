@@ -223,7 +223,7 @@ export default function Navbar() {
     const unsubscribe = subscribeToChatMessageChanges(({ eventType, message }) => {
       refreshUnread()
       if (eventType === 'INSERT' && message?.senderId !== user.id && !location.pathname.startsWith('/chats/')) {
-        toast.info('Ada chat baru masuk.')
+        toast.info(t('toast.newChat'))
       }
     })
     const handleLocalRead = () => refreshUnread()
@@ -234,7 +234,7 @@ export default function Navbar() {
       unsubscribe()
       window.removeEventListener('kampuspay-chat-read', handleLocalRead)
     }
-  }, [activeChatThreadId, isLoggedIn, location.pathname, profile?.role, seller?.id, toast, user?.id])
+  }, [activeChatThreadId, isLoggedIn, location.pathname, profile?.role, seller?.id, t, toast, user?.id])
 
   useEffect(() => {
     if (!isLoggedIn || profile?.role !== 'seller' || !seller?.id) {
@@ -264,7 +264,7 @@ export default function Navbar() {
     const unsubscribe = subscribeToSellerOrderChanges(seller.id, ({ eventType, order }) => {
       refreshUnreadOrders()
       if (eventType === 'INSERT' && order?.sellerId === seller.id && !isViewingOrders) {
-        toast.info('Ada order baru masuk.')
+        toast.info(t('toast.newOrder'))
       }
     })
     const handleLocalRead = () => refreshUnreadOrders()
@@ -275,7 +275,7 @@ export default function Navbar() {
       unsubscribe()
       window.removeEventListener('kampuspay-seller-orders-read', handleLocalRead)
     }
-  }, [isLoggedIn, location.pathname, profile?.role, seller?.id, toast])
+  }, [isLoggedIn, location.pathname, profile?.role, seller?.id, t, toast])
 
   return (
     <>

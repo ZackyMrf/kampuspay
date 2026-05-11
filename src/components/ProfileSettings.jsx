@@ -111,9 +111,9 @@ export default function ProfileSettings() {
         previewUrlRef.current = ''
       }
       await refreshProfile()
-      toast.success('Profil berhasil diperbarui.')
+      toast.success(t('profile.updateSuccess'))
     } catch (error) {
-      toast.error(error.message || 'Gagal menyimpan profil.')
+      toast.error(error.message || t('profile.updateFailed'))
     } finally {
       setSaving(false)
     }

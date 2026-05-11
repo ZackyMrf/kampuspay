@@ -39,13 +39,13 @@ export default function LoginPage() {
         setWalletProfile(profile)
         if (profile?.email) {
           setForm((current) => ({ ...current, email: profile.email || current.email }))
-          toast.info(`Wallet terhubung ke akun ${profile.email}. Masukkan password untuk login.`)
+          toast.info(t('auth.walletLinkedLoginHint', { email: profile.email }))
         } else {
-          toast.info('Wallet ini belum terhubung ke akun email/password.')
+          toast.info(t('auth.walletNoPasswordAccount'))
         }
       })
       .catch((err) => {
-        if (!ignore) toast.error(err.message || 'Gagal mencari akun dari wallet.')
+        if (!ignore) toast.error(err.message || t('auth.walletLookupFailed'))
       })
       .finally(() => {
         if (!ignore) setWalletLookupLoading(false)
@@ -54,7 +54,7 @@ export default function LoginPage() {
     return () => {
       ignore = true
     }
-  }, [connectedWallet, toast])
+  }, [connectedWallet, t, toast])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -74,9 +74,9 @@ export default function LoginPage() {
         }
       }
 
-      toast.success(walletConnected ? 'Login berhasil, wallet ikut terkoneksi.' : 'Login berhasil.')
+      toast.success(walletConnected ? t('auth.loginSuccessWallet') : t('auth.loginSuccess'))
       if (profile?.wallet_address && !walletConnected && !wallet?.adapter) {
-        toast.info('Wallet akun tersimpan. Pilih wallet sekali dari navbar agar login berikutnya bisa auto-connect.')
+        toast.info(t('auth.savedWalletHint'))
       }
       navigate(profile?.role === 'seller' ? '/seller/dashboard' : '/student/dashboard', { replace: true })
     } catch (err) {

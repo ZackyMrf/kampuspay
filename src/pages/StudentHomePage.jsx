@@ -1,35 +1,35 @@
 import { Link } from 'react-router-dom'
+import { useI18n } from '../i18n/LanguageProvider'
 import './StudentHomePage.css'
 
 export default function StudentHomePage() {
+  const { t } = useI18n()
+
   return (
     <div className="page student-page">
       <div className="container">
         <section className="student-hero">
           <div>
-            <span className="section-tag">Halaman Mahasiswa</span>
-            <h1>Bayar kebutuhan kampus dari satu halaman biasa.</h1>
-            <p>
-              Mahasiswa bisa membuka marketplace, memilih item kampus, lalu membayar payment
-              link yang dibuat admin melalui Solana Devnet.
-            </p>
+            <span className="section-tag">{t('studentHome.tag')}</span>
+            <h1>{t('studentHome.title')}</h1>
+            <p>{t('studentHome.sub')}</p>
             <div className="student-actions">
-              <Link to="/marketplace" className="btn btn-primary btn-lg">Buka Marketplace</Link>
+              <Link to="/marketplace" className="btn btn-primary btn-lg">{t('dashboard.openMarketplace')}</Link>
             </div>
           </div>
 
           <div className="student-info">
             <div className="student-info-row">
               <span>Role</span>
-              <strong>Mahasiswa</strong>
+              <strong>{t('auth.student')}</strong>
             </div>
             <div className="student-info-row">
-              <span>Akses</span>
+              <span>{t('studentHome.access')}</span>
               <strong>Marketplace & Payment</strong>
             </div>
             <div className="student-info-row muted">
               <span>Dashboard Admin</span>
-              <strong>Tidak aktif</strong>
+              <strong>{t('studentHome.inactive')}</strong>
             </div>
           </div>
         </section>

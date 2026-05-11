@@ -2,8 +2,10 @@ import { useEffect, useRef } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useAuth } from './authContext'
 import { useToast } from './toastContext'
+import { useI18n } from '../i18n/LanguageProvider'
 
 export default function WalletLogoutSync() {
+  const { t } = useI18n()
   const { connected, connecting } = useWallet()
   const { isLoggedIn, logout } = useAuth()
   const toast = useToast()
@@ -26,17 +28,17 @@ export default function WalletLogoutSync() {
       loggingOut.current = true
       logout()
         .then(() => {
-          toast.info('Wallet disconnected. Akun otomatis logout.')
+          toast.info(t('wallet.autoLogout'))
         })
         .catch((error) => {
-          toast.error(error.message || 'Gagal logout setelah wallet disconnect.')
+          toast.error(error.message || t('wallet.autoLogoutFailed'))
         })
         .finally(() => {
           hadConnectedWallet.current = false
           loggingOut.current = false
         })
     }
-  }, [connected, connecting, isLoggedIn, logout, toast])
+  }, [connected, connecting, isLoggedIn, logout, t, toast])
 
   return null
 }

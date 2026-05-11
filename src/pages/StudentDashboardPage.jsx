@@ -46,16 +46,16 @@ export default function StudentDashboardPage() {
   }), [orders])
 
   const cancelOrder = async (order) => {
-    const confirmed = window.confirm('Batalkan order ini? Status transaksi akan berubah menjadi cancelled.')
+    const confirmed = window.confirm(t('dashboard.cancelConfirm'))
     if (!confirmed) return
 
     try {
       setCancellingId(order.id)
       const { order: cancelledOrder } = await cancelOrderByInvoice(order.invoiceId)
       setOrders((current) => current.map((item) => item.id === order.id ? cancelledOrder : item))
-      toast.success('Order berhasil dibatalkan.')
+      toast.success(t('dashboard.cancelSuccess'))
     } catch (error) {
-      toast.error(error.message || 'Gagal membatalkan order.')
+      toast.error(error.message || t('dashboard.cancelFailed'))
     } finally {
       setCancellingId(null)
     }
@@ -72,7 +72,7 @@ export default function StudentDashboardPage() {
       })
       navigate(`/chats/${thread.id}`)
     } catch (error) {
-      toast.error(error.message || 'Gagal membuka chat.')
+      toast.error(error.message || t('chat.openFailed'))
     } finally {
       setOpeningChatId(null)
     }
@@ -151,7 +151,7 @@ export default function StudentDashboardPage() {
                             onClick={() => openOrderChat(order)}
                             disabled={openingChatId === order.id}
                           >
-                            {openingChatId === order.id ? 'Opening...' : 'Chat Seller'}
+                            {openingChatId === order.id ? t('chat.opening') : t('chat.chatSeller')}
                           </button>
                           {CANCELLABLE_ORDER_STATUSES.has(order.status) && (
                             <button

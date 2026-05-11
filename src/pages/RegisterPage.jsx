@@ -39,7 +39,7 @@ export default function RegisterPage() {
     setError('')
 
     if (!connectedWallet) {
-      const message = 'Connect wallet dulu sebelum register.'
+      const message = t('auth.connectWalletBeforeRegister')
       setError(message)
       toast.error(message)
       setWalletModalOpen(true)
@@ -61,7 +61,7 @@ export default function RegisterPage() {
           walletAddress: connectedWallet,
         },
       })
-      toast.success('Register berhasil.')
+      toast.success(t('auth.registerSuccess'))
       navigate(form.role === 'seller' ? '/seller/dashboard' : '/student/dashboard', { replace: true })
     } catch (err) {
       setError(err.message || 'Registration failed.')

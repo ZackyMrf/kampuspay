@@ -9,11 +9,13 @@ import {
   updateProduct,
   uploadProductImage,
 } from '../utils/marketplaceStorage'
+import { useI18n } from '../i18n/LanguageProvider'
 import './DashboardRole.css'
 
 const MAX_IMAGE_SIZE = 3 * 1024 * 1024
 
 export default function CreateProductPage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const { productId } = useParams()
   const toast = useToast()
@@ -41,7 +43,7 @@ export default function CreateProductPage() {
       .then((product) => {
         if (ignore) return
         if (!product || product.sellerId !== seller.id) {
-          toast.error('Produk tidak ditemukan atau bukan milik seller ini.')
+          toast.error(t('sellerProducts.notFoundOwned'))
           navigate('/seller/products', { replace: true })
           return
         }
@@ -64,7 +66,7 @@ export default function CreateProductPage() {
     return () => {
       ignore = true
     }
-  }, [navigate, productId, seller?.id, toast])
+  }, [navigate, productId, seller?.id, t, toast])
 
   useEffect(() => {
     return () => {
@@ -86,13 +88,13 @@ export default function CreateProductPage() {
     }
 
     if (!file.type.startsWith('image/')) {
-      toast.error('File harus berupa gambar.')
+      toast.error(t('sellerProducts.imageTypeError'))
       event.target.value = ''
       return
     }
 
     if (file.size > MAX_IMAGE_SIZE) {
-      toast.error('Ukuran foto maksimal 3 MB.')
+      toast.error(t('sellerProducts.imageSizeError'))
       event.target.value = ''
       return
     }
@@ -105,7 +107,7 @@ export default function CreateProductPage() {
     event.preventDefault()
 
     if (!seller?.walletAddress) {
-      toast.error('Lengkapi wallet seller di profil seller sebelum membuat produk.')
+      toast.error(t('sellerProducts.walletRequired'))
       return
     }
 
@@ -128,10 +130,10 @@ export default function CreateProductPage() {
 
       if (isEditMode) {
         await updateProduct(productId, payload)
-        toast.success('Product updated.')
+        toast.success(t('sellerProducts.updated'))
       } else {
         await createProduct(payload)
-        toast.success('Product created.')
+        toast.success(t('sellerProducts.created'))
       }
 
       navigate('/seller/products')
@@ -147,11 +149,11 @@ export default function CreateProductPage() {
       <div className="container">
         <header className="role-header">
           <div>
-            <span className="section-tag">{isEditMode ? 'Edit Product' : 'Create Product'}</span>
-            <h1>{isEditMode ? 'Edit produk marketplace.' : 'Tambah produk marketplace.'}</h1>
+            <span className="section-tag">{isEditMode ? t('sellerProducts.editTag') : t('sellerProducts.createTag')}</span>
+            <h1>{isEditMode ? t('sellerProducts.editTitle') : t('sellerProducts.createTitle')}</h1>
           </div>
           <div className="role-actions">
-            <Link to="/seller/products" className="btn btn-outline">Back to Products</Link>
+            <Link to="/seller/products" className="btn btn-outline">{t('sellerProducts.back')}</Link>
           </div>
         </header>
 
@@ -161,68 +163,68 @@ export default function CreateProductPage() {
         <form className="card product-form-card" onSubmit={handleSubmit}>
           <div className="grid-2">
             <div className="form-group">
-              <label className="form-label">Product Name</label>
+              <label className="form-label">{t('sellerProducts.productName')}</label>
               <input className="form-input" name="name" value={form.name} onChange={handleChange} required />
             </div>
             <div className="form-group">
-              <label className="form-label">Price in SOL</label>
+              <label className="form-label">{t('sellerProducts.priceSol')}</label>
               <input className="form-input" name="priceSol" type="number" min="0.001" step="0.001" value={form.priceSol} onChange={handleChange} required />
             </div>
           </div>
 
           <div className="grid-3">
             <div className="form-group">
-              <label className="form-label">Category</label>
+              <label className="form-label">{t('sellerProducts.category')}</label>
               <select className="form-select" name="category" value={form.category} onChange={handleChange}>
                 {MARKETPLACE_CATEGORIES.map((category) => <option key={category}>{category}</option>)}
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">Stock</label>
+              <label className="form-label">{t('sellerProducts.stock')}</label>
               <input className="form-input" name="stock" type="number" min="0" value={form.stock} onChange={handleChange} />
             </div>
             <div className="form-group">
-              <label className="form-label">Active</label>
+              <label className="form-label">{t('sellerProducts.active')}</label>
               <label className="btn btn-outline" style={{ justifyContent: 'center' }}>
                 <input type="checkbox" name="isActive" checked={form.isActive} onChange={handleChange} />
-                Active product
+                {t('sellerProducts.activeProduct')}
               </label>
             </div>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Foto Produk</label>
+            <label className="form-label">{t('sellerProducts.photo')}</label>
             <div className="product-image-upload">
               <div className="product-upload-preview">
                 {imagePreview || form.imageUrl ? (
-                  <img src={imagePreview || form.imageUrl} alt="Preview produk" />
+                  <img src={imagePreview || form.imageUrl} alt={t('sellerProducts.previewAlt')} />
                 ) : (
                   <span>Preview</span>
                 )}
               </div>
               <div className="product-upload-controls">
                 <label className="btn btn-outline product-upload-button">
-                  Upload foto
+                  {t('sellerProducts.uploadPhoto')}
                   <input type="file" accept="image/*" onChange={handleImageChange} disabled={saving} />
                 </label>
-                <p className="form-hint">JPG, PNG, atau WebP. Maksimal 3 MB. Foto akan disimpan di Supabase Storage.</p>
+                <p className="form-hint">{t('sellerProducts.photoHint')}</p>
               </div>
             </div>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Image URL Opsional</label>
+            <label className="form-label">{t('sellerProducts.optionalImageUrl')}</label>
             <input className="form-input" name="imageUrl" value={form.imageUrl} onChange={handleChange} placeholder="https://..." disabled={Boolean(productImage)} />
-            <span className="form-hint">Dipakai kalau tidak upload foto dari perangkat.</span>
+            <span className="form-hint">{t('sellerProducts.optionalImageHint')}</span>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Description</label>
+            <label className="form-label">{t('sellerProducts.description')}</label>
             <textarea className="form-textarea" name="description" value={form.description} onChange={handleChange} rows={4} />
           </div>
 
           <button className="btn btn-primary btn-lg btn-full" disabled={saving}>
-            {saving ? 'Saving product...' : isEditMode ? 'Update Product' : 'Create Product'}
+            {saving ? t('sellerProducts.saving') : isEditMode ? t('sellerProducts.update') : t('sellerProducts.create')}
           </button>
         </form>
         )}

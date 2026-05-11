@@ -426,7 +426,7 @@ export default function PaymentPage() {
 
   const cancelOrder = async () => {
     if (!invoiceId || !canCancelOrder) return
-    const confirmed = window.confirm('Batalkan order ini? Status transaksi akan berubah menjadi cancelled.')
+    const confirmed = window.confirm(t('dashboard.cancelConfirm'))
     if (!confirmed) return
 
     try {
@@ -435,10 +435,10 @@ export default function PaymentPage() {
       const result = await cancelOrderByInvoice(invoiceId)
       setInvoice(result.invoice)
       setMarketplaceOrder(result.order)
-      toast.success('Order berhasil dibatalkan.')
+      toast.success(t('dashboard.cancelSuccess'))
     } catch (error) {
-      setTxError(error.message || 'Gagal membatalkan order.')
-      toast.error(error.message || 'Gagal membatalkan order.')
+      setTxError(error.message || t('dashboard.cancelFailed'))
+      toast.error(error.message || t('dashboard.cancelFailed'))
     } finally {
       setCancellingOrder(false)
     }

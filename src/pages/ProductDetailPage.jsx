@@ -40,12 +40,12 @@ export default function ProductDetailPage() {
   const handleBuy = async () => {
     if (!product) return
     if (!isLoggedIn || role !== 'student') {
-      toast.info('Login sebagai student untuk checkout.')
+      toast.info(t('product.loginStudentCheckout'))
       navigate('/login')
       return
     }
     if (!product.seller?.walletAddress) {
-      toast.error('Seller wallet belum tersedia.')
+      toast.error(t('product.sellerWalletMissing'))
       return
     }
 
@@ -57,7 +57,7 @@ export default function ProductDetailPage() {
         buyerWallet: connected && publicKey ? publicKey.toString() : '',
         quantity,
       })
-      toast.success('Invoice checkout dibuat.')
+      toast.success(t('product.checkoutCreated'))
       navigate(`/pay/${invoice.id}`)
     } catch (error) {
       toast.error(error.message || 'Checkout failed.')
@@ -69,7 +69,7 @@ export default function ProductDetailPage() {
   const handleChatSeller = async () => {
     if (!product) return
     if (!isLoggedIn || role !== 'student') {
-      toast.info('Login sebagai student untuk chat seller.')
+      toast.info(t('product.loginStudentChat'))
       navigate('/login')
       return
     }
@@ -83,7 +83,7 @@ export default function ProductDetailPage() {
       })
       navigate(`/chats/${thread.id}`)
     } catch (error) {
-      toast.error(error.message || 'Gagal membuka chat seller.')
+      toast.error(error.message || t('chat.openSellerFailed'))
     } finally {
       setStartingChat(false)
     }
@@ -143,7 +143,7 @@ export default function ProductDetailPage() {
               {checkingOut ? t('product.creatingInvoice') : t('product.buyNowAmount', { amount: (product.priceSol * quantity).toFixed(3) })}
             </button>
             <button className="btn btn-outline btn-lg btn-full mt-4" onClick={handleChatSeller} disabled={startingChat}>
-              {startingChat ? 'Membuka chat...' : 'Chat Seller'}
+              {startingChat ? t('chat.opening') : t('chat.chatSeller')}
             </button>
           </div>
         </div>

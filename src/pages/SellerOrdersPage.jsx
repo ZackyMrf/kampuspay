@@ -18,9 +18,11 @@ import { getExplorerUrl } from '../utils/solana'
 import { formatPickupStatus, getPickupStatusTone } from '../utils/pickupCode'
 import { getSellerBadgeTone } from '../utils/sellerBadge'
 import { formatIdr, formatPaymentMethod, formatPaymentStatus, getPaymentStatusTone, PAID_ORDER_STATUSES } from '../utils/paymentMethods'
+import { useI18n } from '../i18n/LanguageProvider'
 import './DashboardRole.css'
 
 export default function SellerOrdersPage() {
+  const { t } = useI18n()
   const { seller } = useAuth()
   const toast = useToast()
   const navigate = useNavigate()
@@ -40,7 +42,7 @@ export default function SellerOrdersPage() {
             setOrders(nextOrders)
             setSellerTrust(nextTrust)
             setLocalSellerOrderReadAt(seller.id)
-            if (showNewOrderToast) toast.info('Ada order baru masuk.')
+            if (showNewOrderToast) toast.info(t('toast.newOrder'))
           }
         })
         .catch((error) => toast.error(error.message || 'Failed to load orders.'))
@@ -59,7 +61,7 @@ export default function SellerOrdersPage() {
       ignore = true
       unsubscribe()
     }
-  }, [seller?.id, toast])
+  }, [seller?.id, t, toast])
 
   const markPickedUp = async (orderId) => {
     try {
@@ -124,7 +126,7 @@ export default function SellerOrdersPage() {
       })
       navigate(`/chats/${thread.id}`)
     } catch (error) {
-      toast.error(error.message || 'Gagal membuka chat.')
+      toast.error(error.message || t('chat.openFailed'))
     } finally {
       setOpeningChatId(null)
     }
@@ -135,12 +137,12 @@ export default function SellerOrdersPage() {
       <div className="container">
         <header className="role-header">
           <div>
-            <span className="section-tag">Seller Orders</span>
-            <h1>Pesanan lapak.</h1>
+            <span className="section-tag">{t('sellerOrders.tag')}</span>
+            <h1>{t('sellerOrders.title')}</h1>
             {sellerTrust && (
               <p className="text-secondary">
                 <span className={`badge badge-${getSellerBadgeTone(sellerTrust.badge)}`}>{sellerTrust.badge}</span>{' '}
-                Trust Score: {sellerTrust.trustScore}%
+                {t('product.trustScore')}: {sellerTrust.trustScore}%
               </p>
             )}
           </div>
@@ -149,27 +151,27 @@ export default function SellerOrdersPage() {
         {loading ? (
           <div className="card empty-state"><span className="spinner" /></div>
         ) : orders.length === 0 ? (
-          <div className="card empty-state"><h3>No orders yet</h3><p className="text-secondary">Checkout dari student akan muncul di sini.</p></div>
+          <div className="card empty-state"><h3>{t('dashboard.noOrders')}</h3><p className="text-secondary">{t('dashboard.noOrdersSub')}</p></div>
         ) : (
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Order</th><th>Product</th><th>Buyer Wallet</th><th>Total</th><th>Payment</th><th>Status</th><th>Pickup Code</th><th>Pickup Status</th><th>Transaction</th><th>Action</th></tr></thead>
+              <thead><tr><th>{t('sellerOrders.order')}</th><th>{t('dashboard.product')}</th><th>{t('dashboard.buyerWallet')}</th><th>{t('dashboard.total')}</th><th>{t('dashboard.payment')}</th><th>{t('dashboard.status')}</th><th>{t('dashboard.pickupCode')}</th><th>{t('dashboard.pickupStatus')}</th><th>{t('dashboard.transaction')}</th><th>{t('dashboard.action')}</th></tr></thead>
               <tbody>
                 {orders.map((order) => (
                   <tr key={order.id}>
                     <td className="font-mono">{shortenAddress(order.id)}</td>
-                    <td><Link to={`/product/${order.productId}`}>{order.product?.name || 'Product'}</Link></td>
+                    <td><Link to={`/product/${order.productId}`}>{order.product?.name || t('dashboard.product')}</Link></td>
                     <td className="font-mono">{order.buyerWallet ? shortenAddress(order.buyerWallet) : '-'}</td>
                     <td>
                       {order.totalAmount.toFixed(3)} SOL
                       {order.fiatAmount ? <div className="text-muted text-sm">{formatIdr(order.fiatAmount)}</div> : null}
-                      <div className="text-muted text-sm">{order.quantity} item</div>
+                      <div className="text-muted text-sm">{t('dashboard.item', { count: order.quantity })}</div>
                     </td>
                     <td>
                       <span className="badge badge-muted">{formatPaymentMethod(order.paymentMethod)}</span>
                       {order.paymentProofUrl && (
                         <div className="text-sm mt-4">
-                          <a href={order.paymentProofUrl} target="_blank" rel="noopener noreferrer" className="tx-link">Proof</a>
+                          <a href={order.paymentProofUrl} target="_blank" rel="noopener noreferrer" className="tx-link">{t('sellerOrders.proof')}</a>
                         </div>
                       )}
                     </td>
@@ -192,14 +194,14 @@ export default function SellerOrdersPage() {
                               onClick={() => confirmReviewPayment(order.id, order.paymentMethod)}
                               disabled={updatingId === order.id}
                             >
-                              {updatingId === order.id ? 'Confirming...' : `Confirm ${formatPaymentMethod(order.paymentMethod)} Payment`}
+                              {updatingId === order.id ? t('sellerOrders.confirming') : t('sellerOrders.confirmPayment', { method: formatPaymentMethod(order.paymentMethod) })}
                             </button>
                             <button
                               className="btn btn-outline btn-sm"
                               onClick={() => rejectReviewPayment(order.id)}
                               disabled={updatingId === order.id}
                             >
-                              Reject Payment
+                              {t('sellerOrders.rejectPayment')}
                             </button>
                           </>
                         )}
@@ -209,7 +211,7 @@ export default function SellerOrdersPage() {
                             onClick={() => confirmCashPickup(order.id)}
                             disabled={updatingId === order.id}
                           >
-                            {updatingId === order.id ? 'Updating...' : 'Mark as Paid & Picked Up'}
+                            {updatingId === order.id ? t('sellerOrders.updating') : t('sellerOrders.markPaidPickedUp')}
                           </button>
                         )}
                         {order.status !== 'payment_review' && order.status !== 'cash_pending' && (
@@ -218,7 +220,7 @@ export default function SellerOrdersPage() {
                             onClick={() => markPickedUp(order.id)}
                             disabled={!PAID_ORDER_STATUSES.has(order.status) || order.pickupStatus === 'picked_up' || updatingId === order.id}
                           >
-                            {updatingId === order.id ? 'Updating...' : 'Mark as Picked Up'}
+                            {updatingId === order.id ? t('sellerOrders.updating') : t('sellerOrders.markPickedUp')}
                           </button>
                         )}
                         <button
@@ -226,7 +228,7 @@ export default function SellerOrdersPage() {
                           onClick={() => openOrderChat(order)}
                           disabled={!order.buyerUserId || openingChatId === order.id}
                         >
-                          {openingChatId === order.id ? 'Opening...' : 'Chat Buyer'}
+                          {openingChatId === order.id ? t('chat.opening') : t('chat.chatBuyer')}
                         </button>
                       </div>
                     </td>

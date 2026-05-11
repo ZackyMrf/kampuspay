@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js'
 import { SOLANA_FAUCET_RPC_URL, createSolanaConnection } from '../utils/solanaConfig'
+import { useI18n } from '../i18n/LanguageProvider'
 import './FaucetModal.css'
 
 const AIRDROP_AMOUNT = 1
@@ -27,6 +28,7 @@ function explorerUrl(signature) {
 }
 
 export default function FaucetModal({ isOpen, onClose }) {
+  const { t } = useI18n()
   const { publicKey } = useWallet()
   const faucetConnection = useMemo(
     () => createSolanaConnection(SOLANA_FAUCET_RPC_URL),
@@ -137,9 +139,9 @@ export default function FaucetModal({ isOpen, onClose }) {
     const minutes = Math.floor((totalSeconds % 3600) / 60)
     const seconds = totalSeconds % 60
 
-    if (hours > 0) return `${hours}j ${minutes}m`
-    if (minutes > 0) return `${minutes}m ${seconds}d`
-    return `${seconds}d`
+    if (hours > 0) return `${hours}h ${minutes}m`
+    if (minutes > 0) return `${minutes}m ${seconds}s`
+    return `${seconds}s`
   }
 
   const requestAirdrop = async () => {
@@ -167,7 +169,7 @@ export default function FaucetModal({ isOpen, onClose }) {
       persistHistory(nextHistory)
       setStatus({
         type: 'success',
-        message: `${AIRDROP_AMOUNT} SOL berhasil dikirim ke wallet kamu.`,
+        message: t('faucet.airdropSuccess', { amount: AIRDROP_AMOUNT }),
         sig: signature,
       })
     } catch (error) {
@@ -189,13 +191,13 @@ export default function FaucetModal({ isOpen, onClose }) {
           type: 'rate-limit',
           message:
             message.includes('airdrop limit') || message.includes('airdropped too much')
-              ? 'Batas airdrop wallet ini tercapai. Tunggu beberapa jam atau pakai faucet alternatif.'
-              : 'Endpoint publik Solana sedang rate limit. Faucet dikunci sementara selama 1 menit agar tidak spam.',
+              ? t('faucet.walletLimit')
+              : t('faucet.rateLimit'),
         })
       } else {
         setStatus({
           type: 'error',
-          message: `Gagal airdrop: ${message || 'Unknown error'}`,
+          message: t('faucet.airdropFailed', { message: message || 'Unknown error' }),
         })
       }
     } finally {

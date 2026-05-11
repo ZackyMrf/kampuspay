@@ -14,6 +14,7 @@ import {
 import { shortenAddress } from '../hooks/useWallet'
 import { getExplorerUrl } from '../utils/solana'
 import { useToast } from '../components/toastContext'
+import { useI18n } from '../i18n/LanguageProvider'
 import './DashboardPage.css'
 
 function downloadTextFile(filename, content, type) {
@@ -27,6 +28,7 @@ function downloadTextFile(filename, content, type) {
 }
 
 export default function DashboardPage() {
+  const { t } = useI18n()
   const toast = useToast()
   const [copiedId, setCopiedId] = useState(null)
   const [statusFilter, setStatusFilter] = useState('all')
@@ -144,7 +146,7 @@ export default function DashboardPage() {
         <div className="dash-toolbar mb-6">
           <div>
             <h1 className="page-title">Admin Dashboard</h1>
-            <p className="page-sub">Kelola invoice, export laporan, dan pantau status pembayaran mahasiswa.</p>
+            <p className="page-sub">{t('adminDashboard.sub')}</p>
           </div>
           <div className="dash-toolbar-actions">
             <button className="btn btn-outline" onClick={exportCsv}>Export CSV</button>

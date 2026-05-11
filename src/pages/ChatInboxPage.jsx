@@ -9,11 +9,12 @@ import {
   subscribeToChatMessageChanges,
   subscribeToChatThreadList,
 } from '../utils/chatStorage'
+import { useI18n } from '../i18n/LanguageProvider'
 import './ChatPage.css'
 
-function formatTime(value) {
+function formatTime(value, locale) {
   if (!value) return ''
-  return new Intl.DateTimeFormat('id-ID', {
+  return new Intl.DateTimeFormat(locale, {
     day: '2-digit',
     month: 'short',
     hour: '2-digit',
@@ -38,6 +39,7 @@ function hasUnread(thread, userId) {
 }
 
 export default function ChatInboxPage({ role }) {
+  const { locale, t } = useI18n()
   const { user, seller } = useAuth()
   const toast = useToast()
   const [threads, setThreads] = useState([])
@@ -108,8 +110,8 @@ export default function ChatInboxPage({ role }) {
         <header className="role-header">
           <div>
             <span className="section-tag">Messages</span>
-            <h1>{role === 'seller' ? 'Chat pembeli.' : 'Chat toko.'}</h1>
-            <p className="text-secondary">Kelola percakapan produk dan order marketplace.</p>
+            <h1>{role === 'seller' ? t('chat.inboxSellerTitle') : t('chat.inboxStudentTitle')}</h1>
+            <p className="text-secondary">{t('chat.inboxSub')}</p>
           </div>
           <div className="role-actions">
             <Link to={role === 'seller' ? '/seller/orders' : '/marketplace'} className="btn btn-outline">
@@ -122,11 +124,11 @@ export default function ChatInboxPage({ role }) {
           <div className="card empty-state"><span className="spinner" /></div>
         ) : threads.length === 0 ? (
           <div className="card empty-state">
-            <h3>Belum ada chat</h3>
+            <h3>{t('chat.emptyTitle')}</h3>
             <p className="text-secondary">
               {role === 'seller'
-                ? 'Chat dari student akan muncul di sini.'
-                : 'Mulai chat dari halaman detail produk atau order kamu.'}
+                ? t('chat.emptySellerSub')
+                : t('chat.emptyStudentSub')}
             </p>
           </div>
         ) : (
@@ -139,14 +141,14 @@ export default function ChatInboxPage({ role }) {
                 <div>
                   <strong>
                     {threadTitle(thread, role)}
-                    {hasUnread(thread, user?.id) && <span className="chat-unread-dot" aria-label="Pesan belum dibaca" />}
+                    {hasUnread(thread, user?.id) && <span className="chat-unread-dot" aria-label={t('chat.unreadAria')} />}
                   </strong>
                   <div className="text-muted text-sm">{thread.product?.name || 'Marketplace chat'}</div>
                   <div className="chat-preview text-secondary text-sm">
-                    {thread.latestMessage?.message || 'Belum ada pesan.'}
+                    {thread.latestMessage?.message || t('chat.noMessages')}
                   </div>
                 </div>
-                <span className="text-muted text-sm">{formatTime(thread.latestMessage?.createdAt || thread.updatedAt)}</span>
+                <span className="text-muted text-sm">{formatTime(thread.latestMessage?.createdAt || thread.updatedAt, locale)}</span>
               </Link>
             ))}
           </div>

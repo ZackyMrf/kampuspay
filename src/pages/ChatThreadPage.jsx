@@ -10,11 +10,12 @@ import {
   setLocalChatReadAt,
   subscribeToChatMessages,
 } from '../utils/chatStorage'
+import { useI18n } from '../i18n/LanguageProvider'
 import './ChatPage.css'
 
-function formatTime(value) {
+function formatTime(value, locale) {
   if (!value) return ''
-  return new Intl.DateTimeFormat('id-ID', {
+  return new Intl.DateTimeFormat(locale, {
     day: '2-digit',
     month: 'short',
     hour: '2-digit',
@@ -23,6 +24,7 @@ function formatTime(value) {
 }
 
 export default function ChatThreadPage() {
+  const { locale, t } = useI18n()
   const { threadId } = useParams()
   const { user, role } = useAuth()
   const toast = useToast()
@@ -119,8 +121,8 @@ export default function ChatThreadPage() {
   if (!thread) {
     return (
       <div className="page flex-center flex-col gap-4">
-        <h2>Chat tidak ditemukan</h2>
-        <Link to={role === 'seller' ? '/seller/chats' : '/student/chats'} className="btn btn-primary">Kembali ke inbox</Link>
+        <h2>{t('chat.notFound')}</h2>
+        <Link to={role === 'seller' ? '/seller/chats' : '/student/chats'} className="btn btn-primary">{t('chat.backInbox')}</Link>
       </div>
     )
   }
@@ -128,7 +130,7 @@ export default function ChatThreadPage() {
   return (
     <div className="page">
       <div className="container">
-        <Link to={role === 'seller' ? '/seller/chats' : '/student/chats'} className="back-link">Kembali ke inbox</Link>
+        <Link to={role === 'seller' ? '/seller/chats' : '/student/chats'} className="back-link">{t('chat.backInbox')}</Link>
         <div className="chat-layout">
           <aside className="card chat-summary">
             <div className="chat-product">
@@ -136,19 +138,19 @@ export default function ChatThreadPage() {
                 {thread.product?.imageUrl ? <img src={thread.product.imageUrl} alt={thread.product.name} /> : 'KP'}
               </div>
               <div>
-                <span className="detail-label">Produk</span>
+                <span className="detail-label">{t('dashboard.product')}</span>
                 <h2 className="chat-title">{thread.product?.name || 'Marketplace chat'}</h2>
                 {thread.product?.priceSol ? <p className="text-muted text-sm">{thread.product.priceSol.toFixed(3)} SOL</p> : null}
               </div>
             </div>
             <div className="divider" />
             <div className="invoice-details">
-              <div className="detail-row"><span className="detail-label">Dengan</span><strong>{peerName}</strong></div>
+              <div className="detail-row"><span className="detail-label">{t('chat.with')}</span><strong>{peerName}</strong></div>
               {thread.orderId && <div className="detail-row"><span className="detail-label">Order</span><span className="font-mono">{thread.orderId.slice(0, 8)}...</span></div>}
               {thread.order?.pickupCode && <div className="detail-row"><span className="detail-label">Pickup</span><span className="font-mono">{thread.order.pickupCode}</span></div>}
             </div>
-            {thread.productId && <Link to={`/product/${thread.productId}`} className="btn btn-outline btn-full">Buka produk</Link>}
-            {thread.order?.invoiceId && <Link to={`/pay/${thread.order.invoiceId}`} className="btn btn-primary btn-full">Buka payment</Link>}
+            {thread.productId && <Link to={`/product/${thread.productId}`} className="btn btn-outline btn-full">{t('chat.openProduct')}</Link>}
+            {thread.order?.invoiceId && <Link to={`/pay/${thread.order.invoiceId}`} className="btn btn-primary btn-full">{t('chat.openPayment')}</Link>}
           </aside>
 
           <section className="card chat-panel">
@@ -159,8 +161,8 @@ export default function ChatThreadPage() {
             <div className="chat-messages" ref={messagesRef}>
               {messages.length === 0 ? (
                 <div className="empty-state">
-                  <h3>Belum ada pesan</h3>
-                  <p className="text-secondary">Kirim pesan pertama untuk mulai koordinasi.</p>
+                  <h3>{t('chat.noMessagesTitle')}</h3>
+                  <p className="text-secondary">{t('chat.noMessagesSub')}</p>
                 </div>
               ) : (
                 messages.map((message) => {
@@ -169,7 +171,7 @@ export default function ChatThreadPage() {
                     <div className={`chat-bubble-row ${mine ? 'mine' : ''}`} key={message.id}>
                       <div className="chat-bubble">
                         <p>{message.message}</p>
-                        <span className="chat-meta">{mine ? 'Kamu' : peerName} · {formatTime(message.createdAt)}</span>
+                        <span className="chat-meta">{mine ? t('chat.you') : peerName} · {formatTime(message.createdAt, locale)}</span>
                       </div>
                     </div>
                   )
@@ -181,10 +183,10 @@ export default function ChatThreadPage() {
                 className="form-input"
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
-                placeholder="Tulis pesan..."
+                placeholder={t('chat.writeMessage')}
               />
               <button className="btn btn-primary" disabled={sending || !draft.trim()}>
-                {sending ? 'Mengirim...' : 'Kirim'}
+                {sending ? t('chat.sending') : t('chat.send')}
               </button>
             </form>
           </section>

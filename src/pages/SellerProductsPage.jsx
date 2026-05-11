@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../components/authContext'
 import { useToast } from '../components/toastContext'
 import { deleteProduct, getSellerProducts, updateProduct } from '../utils/marketplaceStorage'
+import { useI18n } from '../i18n/LanguageProvider'
 import './DashboardRole.css'
 
 export default function SellerProductsPage() {
+  const { t } = useI18n()
   const { seller } = useAuth()
   const toast = useToast()
   const [products, setProducts] = useState([])
@@ -57,20 +59,20 @@ export default function SellerProductsPage() {
       <div className="container">
         <header className="role-header">
           <div>
-            <span className="section-tag">Seller Products</span>
-            <h1>Kelola produk lapak.</h1>
+            <span className="section-tag">{t('sellerProducts.listTag')}</span>
+            <h1>{t('sellerProducts.listTitle')}</h1>
           </div>
-          <Link to="/seller/products/create" className="btn btn-primary">Create Product</Link>
+          <Link to="/seller/products/create" className="btn btn-primary">{t('sellerProducts.create')}</Link>
         </header>
 
         {loading ? (
           <div className="card empty-state"><span className="spinner" /></div>
         ) : products.length === 0 ? (
-          <div className="card empty-state"><h3>No products yet</h3><p className="text-secondary">Create your first product for the marketplace.</p></div>
+          <div className="card empty-state"><h3>{t('sellerProducts.emptyTitle')}</h3><p className="text-secondary">{t('sellerProducts.emptySub')}</p></div>
         ) : (
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Product</th><th>Price</th><th>Category</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead><tr><th>{t('dashboard.product')}</th><th>{t('product.price')}</th><th>{t('sellerProducts.category')}</th><th>{t('sellerProducts.stock')}</th><th>{t('dashboard.status')}</th><th>{t('sellerProducts.actions')}</th></tr></thead>
               <tbody>
                 {products.map((product) => (
                   <tr key={product.id}>
@@ -78,12 +80,12 @@ export default function SellerProductsPage() {
                     <td>{product.priceSol.toFixed(3)} SOL</td>
                     <td>{product.category}</td>
                     <td>{product.stock}</td>
-                    <td><span className={`badge ${product.isActive ? 'badge-success' : 'badge-muted'}`}>{product.isActive ? 'active' : 'inactive'}</span></td>
+                    <td><span className={`badge ${product.isActive ? 'badge-success' : 'badge-muted'}`}>{product.isActive ? t('sellerProducts.statusActive') : t('sellerProducts.statusInactive')}</span></td>
                     <td>
                       <div className="role-actions">
-                        <Link className="btn btn-outline btn-sm" to={`/seller/products/${product.id}/edit`}>Edit</Link>
-                        <button className="btn btn-outline btn-sm" onClick={() => toggleProduct(product)}>{product.isActive ? 'Deactivate' : 'Activate'}</button>
-                        <button className="btn btn-danger btn-sm" onClick={() => removeProduct(product)}>Delete</button>
+                        <Link className="btn btn-outline btn-sm" to={`/seller/products/${product.id}/edit`}>{t('sellerProducts.editAction')}</Link>
+                        <button className="btn btn-outline btn-sm" onClick={() => toggleProduct(product)}>{product.isActive ? t('sellerProducts.deactivate') : t('sellerProducts.activate')}</button>
+                        <button className="btn btn-danger btn-sm" onClick={() => removeProduct(product)}>{t('sellerProducts.delete')}</button>
                       </div>
                     </td>
                   </tr>
