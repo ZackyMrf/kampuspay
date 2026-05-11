@@ -95,6 +95,31 @@ function uniqueValues(values) {
   return [...new Set(values.filter(Boolean))]
 }
 
+function realtimeChannelName(prefix) {
+  const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  return `${prefix}:${uniqueId}`
+}
+
+function sellerOrderReadStorageKey(sellerId) {
+  return `kampuspay-seller-order-read:${sellerId}`
+}
+
+export function getLocalSellerOrderReadAt(sellerId) {
+  if (!sellerId || typeof localStorage === 'undefined') return ''
+  return localStorage.getItem(sellerOrderReadStorageKey(sellerId)) || ''
+}
+
+export function setLocalSellerOrderReadAt(sellerId, readAt = new Date().toISOString()) {
+  if (!sellerId || typeof localStorage === 'undefined') return readAt
+  localStorage.setItem(sellerOrderReadStorageKey(sellerId), readAt)
+  window.dispatchEvent(new CustomEvent('kampuspay-seller-orders-read', {
+    detail: { sellerId, readAt },
+  }))
+  return readAt
+}
+
 async function getSellerTrustMap(sellerIds) {
   const ids = uniqueValues(sellerIds)
   const emptyMap = new Map(ids.map((id) => [id, buildSellerTrust()]))
@@ -351,6 +376,53 @@ export async function getSellerOrders(sellerId) {
 
   if (error) throw error
   return data.map(toOrder)
+}
+
+export async function getUnreadSellerOrderCount({
+  sellerId,
+  localReadAt = getLocalSellerOrderReadAt(sellerId),
+  excludeWhenViewingOrders = false,
+}) {
+  assertSupabaseConfigured()
+  if (!sellerId || excludeWhenViewingOrders) return 0
+
+  let query = supabase
+    .from('orders')
+    .select('id, created_at')
+    .eq('seller_id', sellerId)
+
+  if (localReadAt) query = query.gt('created_at', localReadAt)
+
+  const { data, error } = await query
+  if (error) throw error
+  return data.length
+}
+
+export function subscribeToSellerOrderChanges(sellerId, onChange) {
+  assertSupabaseConfigured()
+  if (!sellerId) return () => {}
+
+  const channel = supabase
+    .channel(realtimeChannelName(`seller-orders:${sellerId}`))
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'orders',
+        filter: `seller_id=eq.${sellerId}`,
+      },
+      (payload) => onChange({
+        eventType: payload.eventType,
+        order: toOrder(payload.new),
+        oldOrder: toOrder(payload.old),
+      }),
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
 }
 
 export async function getStudentOrders(userId) {

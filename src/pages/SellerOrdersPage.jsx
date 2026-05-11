@@ -8,6 +8,8 @@ import {
   getSellerTrustSummary,
   markCashOrderPaidAndPickedUp,
   rejectReviewPaymentByOrder,
+  setLocalSellerOrderReadAt,
+  subscribeToSellerOrderChanges,
   updateOrderPickupStatus,
 } from '../utils/marketplaceStorage'
 import { getOrCreateChatThread } from '../utils/chatStorage'
@@ -31,19 +33,31 @@ export default function SellerOrdersPage() {
   useEffect(() => {
     if (!seller?.id) return
     let ignore = false
-    Promise.all([getSellerOrders(seller.id), getSellerTrustSummary(seller.id)])
-      .then(([nextOrders, nextTrust]) => {
-        if (!ignore) {
-          setOrders(nextOrders)
-          setSellerTrust(nextTrust)
-        }
-      })
-      .catch((error) => toast.error(error.message || 'Failed to load orders.'))
-      .finally(() => {
-        if (!ignore) setLoading(false)
-      })
+    const loadOrders = ({ showNewOrderToast = false } = {}) => {
+      Promise.all([getSellerOrders(seller.id), getSellerTrustSummary(seller.id)])
+        .then(([nextOrders, nextTrust]) => {
+          if (!ignore) {
+            setOrders(nextOrders)
+            setSellerTrust(nextTrust)
+            setLocalSellerOrderReadAt(seller.id)
+            if (showNewOrderToast) toast.info('Ada order baru masuk.')
+          }
+        })
+        .catch((error) => toast.error(error.message || 'Failed to load orders.'))
+        .finally(() => {
+          if (!ignore) setLoading(false)
+        })
+    }
+
+    loadOrders()
+
+    const unsubscribe = subscribeToSellerOrderChanges(seller.id, ({ eventType }) => {
+      loadOrders({ showNewOrderToast: eventType === 'INSERT' })
+    })
+
     return () => {
       ignore = true
+      unsubscribe()
     }
   }, [seller?.id, toast])
 

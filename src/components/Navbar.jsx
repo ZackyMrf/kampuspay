@@ -9,6 +9,11 @@ import LanguageToggle from './LanguageToggle'
 import WalletModal from './WalletModal'
 import { useI18n } from '../i18n/LanguageProvider'
 import { getLocalChatReadReceipts, getUnreadChatCount, subscribeToChatMessageChanges } from '../utils/chatStorage'
+import {
+  getLocalSellerOrderReadAt,
+  getUnreadSellerOrderCount,
+  subscribeToSellerOrderChanges,
+} from '../utils/marketplaceStorage'
 import './Navbar.css'
 
 function getInitials(name, fallback = 'KP') {
@@ -110,9 +115,18 @@ function WalletControls({
 
 function ChatNavLabel({ count }) {
   return (
-    <span className="chat-nav-label">
+    <span className="nav-label-with-badge">
       Chat
-      {count > 0 && <span className="chat-nav-badge">{count > 99 ? '99+' : count}</span>}
+      {count > 0 && <span className="nav-link-badge">{count > 99 ? '99+' : count}</span>}
+    </span>
+  )
+}
+
+function OrderNavLabel({ count, label }) {
+  return (
+    <span className="nav-label-with-badge">
+      {label}
+      {count > 0 && <span className="nav-link-badge">{count > 99 ? '99+' : count}</span>}
     </span>
   )
 }
@@ -128,6 +142,7 @@ export default function Navbar() {
   const [walletModalOpen, setWalletModalOpen] = useState(false)
   const [faucetModalOpen, setFaucetModalOpen] = useState(false)
   const [unreadChats, setUnreadChats] = useState(0)
+  const [unreadOrders, setUnreadOrders] = useState(0)
   const profileMenuRef = useRef(null)
 
   const walletAddress = publicKey?.toString()
@@ -143,7 +158,7 @@ export default function Navbar() {
           { path: '/marketplace', label: t('nav.marketplace') },
           { path: '/seller/dashboard', label: t('nav.sellerDashboard') },
           { path: '/seller/products', label: t('nav.products') },
-          { path: '/seller/orders', label: t('nav.orders') },
+          { path: '/seller/orders', label: <OrderNavLabel count={unreadOrders} label={t('nav.orders')} /> },
           { path: '/seller/chats', label: <ChatNavLabel count={unreadChats} /> },
         ]
       : [
@@ -220,6 +235,47 @@ export default function Navbar() {
       window.removeEventListener('kampuspay-chat-read', handleLocalRead)
     }
   }, [activeChatThreadId, isLoggedIn, location.pathname, profile?.role, seller?.id, toast, user?.id])
+
+  useEffect(() => {
+    if (!isLoggedIn || profile?.role !== 'seller' || !seller?.id) {
+      Promise.resolve().then(() => setUnreadOrders(0))
+      return undefined
+    }
+
+    let ignore = false
+    const isViewingOrders = location.pathname === '/seller/orders'
+
+    const refreshUnreadOrders = () => {
+      getUnreadSellerOrderCount({
+        sellerId: seller.id,
+        localReadAt: getLocalSellerOrderReadAt(seller.id),
+        excludeWhenViewingOrders: isViewingOrders,
+      })
+        .then((count) => {
+          if (!ignore) setUnreadOrders(count)
+        })
+        .catch(() => {
+          if (!ignore) setUnreadOrders(0)
+        })
+    }
+
+    refreshUnreadOrders()
+
+    const unsubscribe = subscribeToSellerOrderChanges(seller.id, ({ eventType, order }) => {
+      refreshUnreadOrders()
+      if (eventType === 'INSERT' && order?.sellerId === seller.id && !isViewingOrders) {
+        toast.info('Ada order baru masuk.')
+      }
+    })
+    const handleLocalRead = () => refreshUnreadOrders()
+    window.addEventListener('kampuspay-seller-orders-read', handleLocalRead)
+
+    return () => {
+      ignore = true
+      unsubscribe()
+      window.removeEventListener('kampuspay-seller-orders-read', handleLocalRead)
+    }
+  }, [isLoggedIn, location.pathname, profile?.role, seller?.id, toast])
 
   return (
     <>

@@ -71,12 +71,14 @@
   box-shadow: 0 8px 18px rgba(17, 17, 17, 0.06);
 }
 
+.nav-label-with-badge,
 .chat-nav-label {
   display: inline-flex;
   align-items: center;
   gap: 7px;
 }
 
+.nav-link-badge,
 .chat-nav-badge {
   min-width: 18px;
   height: 18px;
