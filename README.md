@@ -264,4 +264,4 @@ Link Explorer dibuat dengan format Devnet agar transaksi bisa diverifikasi secar
 
 ## Lisensi
 
-Belum ada lisensi eksplisit di repository ini. Tambahkan file `LICENSE` jika proyek akan dipublikasikan atau digunakan oleh pihak lain.
+Proyek ini dirilis di bawah lisensi MIT. Lihat [LICENSE](./LICENSE) untuk detail.
